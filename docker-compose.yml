@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: ./compose/dev/Dockerfile
+    command: python3 manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/sunserver
+    ports:
+      - "8000:8000"
+    environment:
+      MODE_ENVIROMENT: dev
