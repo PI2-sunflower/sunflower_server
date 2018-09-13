@@ -18,8 +18,8 @@ SATELLITE_URI = f"{BASE_URI}/satellite/positions/{ID}/{MY_LAT}/{MY_LONG}/{MY_ALT
 
 
 class Tracker:
-    def __init__(self, uri):
-        self.API_URI = uri
+    def __init__(self, satid: int):
+        self.API_URI = self._build_uri(satid)
 
     def fetch_position(self):
         with request.urlopen(self.API_URI) as response:
@@ -35,12 +35,18 @@ class SatellitePosition:
     __slots__ = ('satid', 'satname', 'satlatitude',
                  'satlongitude', 'sataltitude',)
 
-    def __init__(self):
-        self.satid = None
-        self.satname = None
-        self.satlatitude = None
-        self.satlongitude = None
-        self.sataltitude = None
+    def __init__(self,
+                 satid=None,
+                 satname=None,
+                 satlatitude=None,
+                 satlongitude=None,
+                 sataltitude=None):
+
+        self.satid = satid
+        self.satname = satname
+        self.satlatitude = satlatitude
+        self.satlongitude = satlongitude
+        self.sataltitude = sataltitude
 
 
 class Satellite(abc.ABC):
@@ -92,7 +98,7 @@ class SatelliteTrackerState(Satellite):
             self._track_position()
 
     def _track_position(self):
-        tracker = Tracker(SATELLITE_URI)
+        tracker = Tracker(self.position.satid)
 
         def track_thread():
             while self._keep_tracking:
@@ -129,15 +135,16 @@ class SatelliteProxy(Satellite):
     def get_position(self) -> SatellitePosition:
         return self.satellite.get_position()
 
+    def is_tracking(self) -> bool:
+        return isinstance(self.satellite, SatelliteTrackerState)
+
     def switch_state(self, next_state: str):
-        tracking = isinstance(self.satellite, SatelliteTrackerState)
+        tracking = self.is_tracking()
 
         if tracking:
             self.satellite.stop_tracking()  # stop thread
 
-        if next_state == "not_selected":
-            self.satellite = SatelliteNotSelectedState()
-        elif next_state == "fixed":
+        if next_state == "fixed":
             self.satellite = SatelliteFixedState(self.position)
         elif next_state == "track":
             if tracking:
@@ -145,3 +152,5 @@ class SatelliteProxy(Satellite):
             else:
                 self.satellite = SatelliteTrackerState(self.position)
                 self.satellite.start_tracking()
+        else:  # anything else goto not selected state
+            self.satellite = SatelliteNotSelectedState()
