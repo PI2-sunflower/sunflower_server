@@ -97,9 +97,9 @@ class SatelliteTrackerState(Satellite):
         def track_thread():
             while self._keep_tracking:
                 print("Fetching satellite data")
-                data = tracker.fetch_position()
-
                 try:
+                    data = tracker.fetch_position()
+
                     info = data.get('info')
                     positions = data.get('positions')
 
