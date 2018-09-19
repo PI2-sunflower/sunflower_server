@@ -23,7 +23,13 @@ class Tracker:
 
     def fetch_position(self):
         with request.urlopen(self.API_URI) as response:
-            data = json.loads(response.read())
+            content = response.read()
+
+            if type(content) == bytes:
+                content = content.decode('utf-8')
+
+            data = json.loads(content)
+
             return data
 
     def _build_uri(self, satid: int) -> str:
@@ -114,8 +120,8 @@ class SatelliteTrackerState(Satellite):
                     self.position.satlatitude = positions[0]['satlatitude']
                     self.position.satlongitude = positions[0]['satlongitude']
                     self.position.sataltitude = positions[0]['sataltitude']
-                except:
-                    print("Could not get satellite data")
+                except Exception as e:
+                    print(f"Could not get satellite data: {e}")
                     self.position = SatellitePosition()
 
                 sleep(3)
