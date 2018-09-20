@@ -15,6 +15,8 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+ENV = os.environ.get('MODE_ENVIROMENT')
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
@@ -89,6 +91,24 @@ DATABASES = {
     }
 }
 
+if ENV == 'production':
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'HOST': 'dbprod',
+        'PORT': 5432,
+        'TEST': {
+            # in-memory sqlite for tests
+            'ENGINE': 'django.db.backends.sqlite3',
+        }
+    }
+
+if ENV == 'test':
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+    }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
@@ -127,12 +147,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # My config
 
-MODE_ENVIROMENT = os.environ.get('MODE_ENVIROMENT', "dev")
-
-if MODE_ENVIROMENT == "dev":
+if ENV == "dev":
     CORS_ORIGIN_ALLOW_ALL = True
 else:
     CORS_ORIGIN_WHITELIST = []

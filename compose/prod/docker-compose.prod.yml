@@ -1,0 +1,37 @@
+version: "3"
+
+services:
+  dbprod:
+    image: postgres:10-alpine
+    restart: always
+    volumes:
+      - dbprod_volume:/var/lib/postgresql
+
+  prod:
+    build:
+      context: ../../
+      dockerfile: ./compose/prod/Dockerfile
+    volumes:
+      - ./../../staticfiles:/sunserver/staticfiles
+    environment:
+      MODE_ENVIROMENT: production
+      N2YO_API_KEY: ${N2YO_API_KEY}
+    depends_on:
+      - dbprod
+    command: gunicorn sunflower_server.wsgi -b 0.0.0.0:8000
+
+  nginx:
+    build:
+      context: ../../
+      dockerfile: ./compose/prod/nginx/Dockerfile
+    restart: always
+    ports:
+      - 80:80
+    volumes:
+      - ./../../staticfiles:/usr/share/nginx/html/staticfiles
+    depends_on:
+      - prod
+
+volumes:
+  dbprod_volume:
+
