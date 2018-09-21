@@ -1,6 +1,9 @@
-FROM python:3.6
+FROM python:3.7-alpine
+
+RUN apk update && apk add postgresql-dev gcc python3-dev musl-dev
 
 RUN pip3 install --upgrade pip
+RUN pip install psycopg2
 
 RUN mkdir -p /sunserver
 WORKDIR /sunserver
