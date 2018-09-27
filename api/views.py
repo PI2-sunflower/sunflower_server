@@ -15,10 +15,8 @@ proxy = SatelliteProxy()
 def get_position(position: SatellitePosition):
     data = {
         "satid": position.satid,
-        "satname": position.satname,
-        "satlatitude": position.satlatitude,
-        "satlongitude": position.satlongitude,
-        "sataltitude": position.sataltitude,
+        "info": position.info,
+        "positions": position.positions,
     }
 
     return data

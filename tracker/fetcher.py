@@ -38,21 +38,16 @@ class Tracker:
 
 
 class SatellitePosition:
-    __slots__ = ('satid', 'satname', 'satlatitude',
-                 'satlongitude', 'sataltitude',)
+    __slots__ = ('satid', 'info', 'positions',)
 
     def __init__(self,
                  satid=None,
-                 satname=None,
-                 satlatitude=None,
-                 satlongitude=None,
-                 sataltitude=None):
+                 info=None,
+                 positions=None):
 
         self.satid = satid
-        self.satname = satname
-        self.satlatitude = satlatitude
-        self.satlongitude = satlongitude
-        self.sataltitude = sataltitude
+        self.info = info
+        self.positions = positions
 
 
 class Satellite(abc.ABC):
@@ -112,14 +107,15 @@ class SatelliteTrackerState(Satellite):
                 try:
                     data = tracker.fetch_position()
 
-                    info = data.get('info')
-                    positions = data.get('positions')
+                    info = data.get('info', None)
+                    positions = data.get('positions', None)
 
-                    self.position.satid = info['satid']
-                    self.position.satname = info['satname']
-                    self.position.satlatitude = positions[0]['satlatitude']
-                    self.position.satlongitude = positions[0]['satlongitude']
-                    self.position.sataltitude = positions[0]['sataltitude']
+                    if info is not None:
+                        self.position.info = info
+
+                    if positions is not None:
+                        self.position.positions = positions
+
                 except Exception as e:
                     print(f"Could not get satellite data: {e}")
                     self.position = SatellitePosition()
