@@ -18,11 +18,15 @@ SATELLITE_URI = f"{BASE_URI}/satellite/positions/{ID}/{MY_LAT}/{MY_LONG}/{MY_ALT
 
 
 class Tracker:
+    __slots__ = ('satid',)
+
     def __init__(self, satid: int):
-        self.API_URI = self._build_uri(satid)
+        self.satid = satid
 
     def fetch_position(self):
-        with request.urlopen(self.API_URI) as response:
+        request_uri = self._positions_uri
+
+        with request.urlopen(request_uri) as response:
             content = response.read()
 
             if type(content) == bytes:
@@ -32,22 +36,30 @@ class Tracker:
 
             return data
 
-    def _build_uri(self, satid: int) -> str:
-        uri = f"{BASE_URI}/satellite/positions/{satid}/{MY_LAT}/{MY_LONG}/{MY_ALT}/1/&apiKey={API_KEY}"
-        return uri
+    @property
+    def _positions_uri(self):
+        return "{}/satellite/positions/{}/{}/{}/{}/1/&apiKey={}".format(
+            BASE_URI, self.satid, MY_LAT, MY_LONG, MY_ALT, API_KEY
+        )
+
+    @property
+    def __tle_uri(self):
+        f"{BASE_URI}/satellite/tle/{self.satid}&apiKey={API_KEY}"
 
 
 class SatellitePosition:
-    __slots__ = ('satid', 'info', 'positions',)
+    __slots__ = ('satid', 'info', 'positions', 'tle',)
 
     def __init__(self,
                  satid=None,
                  info=None,
-                 positions=None):
+                 positions=None,
+                 tle=None):
 
         self.satid = satid
         self.info = info
         self.positions = positions
+        self.tle = tle
 
 
 class Satellite(abc.ABC):

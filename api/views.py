@@ -17,6 +17,7 @@ def get_position(position: SatellitePosition):
         "satid": position.satid,
         "info": position.info,
         "positions": position.positions,
+        "tle": position.tle,
     }
 
     return data
