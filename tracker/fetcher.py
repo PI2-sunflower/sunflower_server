@@ -15,6 +15,7 @@ ID = "25544"
 MY_LAT = "-15.77972"
 MY_LONG = "-47.92972"
 MY_ALT = "0"
+POSITIONS_COUNT = 60
 
 # SATELLITE_URI = f"{BASE_URI}/satellite/positions/{ID}/{MY_LAT}/{MY_LONG}/{MY_ALT}/1/&apiKey={API_KEY}"
 
@@ -38,9 +39,6 @@ class Tracker:
         else:
             raise "Invalid Target"
 
-        print("-"*80)
-        print(request_uri)
-
         response = request.urlopen(request_uri)
 
         content = response.read()
@@ -54,8 +52,9 @@ class Tracker:
 
     @property
     def _positions_uri(self):
-        return "{}/satellite/positions/{}/{}/{}/{}/1/&apiKey={}".format(
-            BASE_URI, self.satid, MY_LAT, MY_LONG, MY_ALT, API_KEY
+        return "{}/satellite/positions/{}/{}/{}/{}/{}/&apiKey={}".format(
+            BASE_URI, self.satid, MY_LAT, MY_LONG, MY_ALT,
+            POSITIONS_COUNT, API_KEY
         )
 
     @property
@@ -64,17 +63,19 @@ class Tracker:
 
 
 class SatellitePosition:
-    __slots__ = ('satid', 'info', 'positions', 'tle',)
+    __slots__ = ('satid', 'info', 'positions', 'positions_validation', 'tle',)
 
     def __init__(self,
                  satid=None,
                  info=None,
                  positions=None,
+                 positions_validation=None,
                  tle=None):
 
         self.satid = satid
         self.info = info
         self.positions = positions
+        self.positions_validation = positions_validation
         self.tle = tle
 
 
@@ -133,36 +134,45 @@ class SatelliteTrackerState(Satellite):
             last_tle_fetch = datetime.now() - timedelta(minutes=60)
 
             while self._keep_tracking:
-                # try:
-                thirty_minutes_ago = datetime.now() - timedelta(minutes=30)
+                try:
+                    thirty_minutes_ago = datetime.now() - timedelta(minutes=30)
 
-                # Fetch for TLE from 30 to 30 minutes
-                if last_tle_fetch < thirty_minutes_ago:
-                    print("Fetching TLE params")
-                    data = tracker.fetch(TargetParams.TLE)
-                    last_tle_fetch = datetime.now()
-                    sleep_time = 1
-                else:  # Other wise fetch positions
-                    print("Fetching position params")
-                    data = tracker.fetch(TargetParams.POSITIONS)
-                    sleep_time = 3
+                    # Fetch for TLE from 30 to 30 minutes
+                    if last_tle_fetch < thirty_minutes_ago:
+                        print("Fetching TLE params")
+                        data = tracker.fetch(TargetParams.TLE)
+                        last_tle_fetch = datetime.now()
+                        sleep_time = 1
+                    else:  # Other wise fetch positions
+                        print("Fetching position params")
+                        data = tracker.fetch(TargetParams.POSITIONS)
+                        sleep_time = 60
 
-                info = data.get('info', None)
-                positions = data.get('positions', None)
-                tle = data.get('tle', None)
+                    info = data.get('info', None)
+                    positions = data.get('positions', None)
+                    tle = data.get('tle', None)
 
-                if info is not None:
-                    self.position.info = info
+                    if info is not None:
+                        self.position.info = info
 
-                if positions is not None:
-                    self.position.positions = positions
+                    if positions is not None:
+                        now = datetime.now()
+                        on_60_seconds = now + timedelta(seconds=60)
 
-                if tle is not None:
-                    self.position.tle = tle
+                        positions_validation = {
+                            'from': now,
+                            'to': on_60_seconds
+                        }
 
-                # except Exception as e:
-                #    print(f"Could not get satellite data: {e}")
-                #    self.position = SatellitePosition()
+                        self.position.positions = positions
+                        self.position.positions_validation = positions_validation
+
+                    if tle is not None:
+                        self.position.tle = tle
+
+                except Exception as e:
+                    print(f"Could not get satellite data: {e}")
+                    self.position = SatellitePosition()
 
                 sleep(sleep_time)
 

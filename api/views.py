@@ -17,6 +17,7 @@ def get_position(position: SatellitePosition):
         "satid": position.satid,
         "info": position.info,
         "positions": position.positions,
+        "positions_validation": position.positions_validation,
         "tle": position.tle,
     }
 
@@ -37,7 +38,7 @@ def track_satellite(request, satid):
     if not proxy.is_tracking():
         proxy.switch_state("track")
 
-    return JsonResponse({"tracking": "satid"})
+    return JsonResponse({"tracking": satid})
 
 
 def stop_tracking(request):
