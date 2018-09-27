@@ -5,6 +5,8 @@ from urllib import request
 
 from threading import Thread
 from time import sleep
+from enum import IntEnum
+from datetime import datetime, timedelta
 
 
 API_KEY = os.environ.get('N2YO_API_KEY', "blank")
@@ -13,46 +15,68 @@ ID = "25544"
 MY_LAT = "-15.77972"
 MY_LONG = "-47.92972"
 MY_ALT = "0"
+POSITIONS_COUNT = 60
 
-SATELLITE_URI = f"{BASE_URI}/satellite/positions/{ID}/{MY_LAT}/{MY_LONG}/{MY_ALT}/1/&apiKey={API_KEY}"
+# SATELLITE_URI = f"{BASE_URI}/satellite/positions/{ID}/{MY_LAT}/{MY_LONG}/{MY_ALT}/1/&apiKey={API_KEY}"
+
+
+class TargetParams(IntEnum):
+    TLE = 1
+    POSITIONS = 2
 
 
 class Tracker:
+    __slots__ = ('satid',)
+
     def __init__(self, satid: int):
-        self.API_URI = self._build_uri(satid)
+        self.satid = satid
 
-    def fetch_position(self):
-        with request.urlopen(self.API_URI) as response:
-            content = response.read()
+    def fetch(self, target=TargetParams.TLE):
+        if target == TargetParams.TLE:
+            request_uri = self._tle_uri
+        elif target == TargetParams.POSITIONS:
+            request_uri = self._positions_uri
+        else:
+            raise "Invalid Target"
 
-            if type(content) == bytes:
-                content = content.decode('utf-8')
+        response = request.urlopen(request_uri)
 
-            data = json.loads(content)
+        content = response.read()
 
-            return data
+        if type(content) == bytes:
+            content = content.decode('utf-8')
 
-    def _build_uri(self, satid: int) -> str:
-        uri = f"{BASE_URI}/satellite/positions/{satid}/{MY_LAT}/{MY_LONG}/{MY_ALT}/1/&apiKey={API_KEY}"
-        return uri
+        data = json.loads(content)
+
+        return data
+
+    @property
+    def _positions_uri(self):
+        return "{}/satellite/positions/{}/{}/{}/{}/{}/&apiKey={}".format(
+            BASE_URI, self.satid, MY_LAT, MY_LONG, MY_ALT,
+            POSITIONS_COUNT, API_KEY
+        )
+
+    @property
+    def _tle_uri(self):
+        return f"{BASE_URI}/satellite/tle/{self.satid}&apiKey={API_KEY}"
 
 
 class SatellitePosition:
-    __slots__ = ('satid', 'satname', 'satlatitude',
-                 'satlongitude', 'sataltitude',)
+    __slots__ = ('satid', 'info', 'positions', 'positions_validation', 'tle',)
 
     def __init__(self,
                  satid=None,
-                 satname=None,
-                 satlatitude=None,
-                 satlongitude=None,
-                 sataltitude=None):
+                 info=None,
+                 positions=None,
+                 positions_validation=None,
+                 tle=None):
 
         self.satid = satid
-        self.satname = satname
-        self.satlatitude = satlatitude
-        self.satlongitude = satlongitude
-        self.sataltitude = sataltitude
+        self.info = info
+        self.positions = positions
+        self.positions_validation = positions_validation
+        self.tle = tle
 
 
 class Satellite(abc.ABC):
@@ -104,27 +128,53 @@ class SatelliteTrackerState(Satellite):
             self._track_position()
 
     def _track_position(self):
-        tracker = Tracker(self.position.satid)
-
         def track_thread():
+            tracker = Tracker(self.position.satid)
+            sleep_time = 1
+            last_tle_fetch = datetime.now() - timedelta(minutes=60)
+
             while self._keep_tracking:
-                print("Fetching satellite data")
                 try:
-                    data = tracker.fetch_position()
+                    thirty_minutes_ago = datetime.now() - timedelta(minutes=30)
 
-                    info = data.get('info')
-                    positions = data.get('positions')
+                    # Fetch for TLE from 30 to 30 minutes
+                    if last_tle_fetch < thirty_minutes_ago:
+                        print("Fetching TLE params")
+                        data = tracker.fetch(TargetParams.TLE)
+                        last_tle_fetch = datetime.now()
+                        sleep_time = 1
+                    else:  # Other wise fetch positions
+                        print("Fetching position params")
+                        data = tracker.fetch(TargetParams.POSITIONS)
+                        sleep_time = 60
 
-                    self.position.satid = info['satid']
-                    self.position.satname = info['satname']
-                    self.position.satlatitude = positions[0]['satlatitude']
-                    self.position.satlongitude = positions[0]['satlongitude']
-                    self.position.sataltitude = positions[0]['sataltitude']
+                    info = data.get('info', None)
+                    positions = data.get('positions', None)
+                    tle = data.get('tle', None)
+
+                    if info is not None:
+                        self.position.info = info
+
+                    if positions is not None:
+                        now = datetime.now()
+                        on_60_seconds = now + timedelta(seconds=60)
+
+                        positions_validation = {
+                            'from': now,
+                            'to': on_60_seconds
+                        }
+
+                        self.position.positions = positions
+                        self.position.positions_validation = positions_validation
+
+                    if tle is not None:
+                        self.position.tle = tle
+
                 except Exception as e:
                     print(f"Could not get satellite data: {e}")
                     self.position = SatellitePosition()
 
-                sleep(3)
+                sleep(sleep_time)
 
         t = Thread(target=track_thread)
         t.start()

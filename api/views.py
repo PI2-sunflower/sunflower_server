@@ -15,17 +15,13 @@ proxy = SatelliteProxy()
 def get_position(position: SatellitePosition):
     data = {
         "satid": position.satid,
-        "satname": position.satname,
-        "satlatitude": position.satlatitude,
-        "satlongitude": position.satlongitude,
-        "sataltitude": position.sataltitude,
+        "info": position.info,
+        "positions": position.positions,
+        "positions_validation": position.positions_validation,
+        "tle": position.tle,
     }
 
     return data
-
-
-def index(request):
-    return render(request, 'index.html')
 
 
 def get_satellite_data(request):
@@ -42,7 +38,7 @@ def track_satellite(request, satid):
     if not proxy.is_tracking():
         proxy.switch_state("track")
 
-    return JsonResponse(get_position(proxy.get_position()))
+    return JsonResponse({"tracking": satid})
 
 
 def stop_tracking(request):
