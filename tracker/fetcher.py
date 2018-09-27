@@ -5,6 +5,8 @@ from urllib import request
 
 from threading import Thread
 from time import sleep
+from enum import IntEnum
+from datetime import datetime, timedelta
 
 
 API_KEY = os.environ.get('N2YO_API_KEY', "blank")
@@ -14,7 +16,12 @@ MY_LAT = "-15.77972"
 MY_LONG = "-47.92972"
 MY_ALT = "0"
 
-SATELLITE_URI = f"{BASE_URI}/satellite/positions/{ID}/{MY_LAT}/{MY_LONG}/{MY_ALT}/1/&apiKey={API_KEY}"
+# SATELLITE_URI = f"{BASE_URI}/satellite/positions/{ID}/{MY_LAT}/{MY_LONG}/{MY_ALT}/1/&apiKey={API_KEY}"
+
+
+class TargetParams(IntEnum):
+    TLE = 1
+    POSITIONS = 2
 
 
 class Tracker:
@@ -23,18 +30,27 @@ class Tracker:
     def __init__(self, satid: int):
         self.satid = satid
 
-    def fetch_position(self):
-        request_uri = self._positions_uri
+    def fetch(self, target=TargetParams.TLE):
+        if target == TargetParams.TLE:
+            request_uri = self._tle_uri
+        elif target == TargetParams.POSITIONS:
+            request_uri = self._positions_uri
+        else:
+            raise "Invalid Target"
 
-        with request.urlopen(request_uri) as response:
-            content = response.read()
+        print("-"*80)
+        print(request_uri)
 
-            if type(content) == bytes:
-                content = content.decode('utf-8')
+        response = request.urlopen(request_uri)
 
-            data = json.loads(content)
+        content = response.read()
 
-            return data
+        if type(content) == bytes:
+            content = content.decode('utf-8')
+
+        data = json.loads(content)
+
+        return data
 
     @property
     def _positions_uri(self):
@@ -43,8 +59,8 @@ class Tracker:
         )
 
     @property
-    def __tle_uri(self):
-        f"{BASE_URI}/satellite/tle/{self.satid}&apiKey={API_KEY}"
+    def _tle_uri(self):
+        return f"{BASE_URI}/satellite/tle/{self.satid}&apiKey={API_KEY}"
 
 
 class SatellitePosition:
@@ -111,28 +127,44 @@ class SatelliteTrackerState(Satellite):
             self._track_position()
 
     def _track_position(self):
-        tracker = Tracker(self.position.satid)
-
         def track_thread():
+            tracker = Tracker(self.position.satid)
+            sleep_time = 1
+            last_tle_fetch = datetime.now() - timedelta(minutes=60)
+
             while self._keep_tracking:
-                print("Fetching satellite data")
-                try:
-                    data = tracker.fetch_position()
+                # try:
+                thirty_minutes_ago = datetime.now() - timedelta(minutes=30)
 
-                    info = data.get('info', None)
-                    positions = data.get('positions', None)
+                # Fetch for TLE from 30 to 30 minutes
+                if last_tle_fetch < thirty_minutes_ago:
+                    print("Fetching TLE params")
+                    data = tracker.fetch(TargetParams.TLE)
+                    last_tle_fetch = datetime.now()
+                    sleep_time = 1
+                else:  # Other wise fetch positions
+                    print("Fetching position params")
+                    data = tracker.fetch(TargetParams.POSITIONS)
+                    sleep_time = 3
 
-                    if info is not None:
-                        self.position.info = info
+                info = data.get('info', None)
+                positions = data.get('positions', None)
+                tle = data.get('tle', None)
 
-                    if positions is not None:
-                        self.position.positions = positions
+                if info is not None:
+                    self.position.info = info
 
-                except Exception as e:
-                    print(f"Could not get satellite data: {e}")
-                    self.position = SatellitePosition()
+                if positions is not None:
+                    self.position.positions = positions
 
-                sleep(3)
+                if tle is not None:
+                    self.position.tle = tle
+
+                # except Exception as e:
+                #    print(f"Could not get satellite data: {e}")
+                #    self.position = SatellitePosition()
+
+                sleep(sleep_time)
 
         t = Thread(target=track_thread)
         t.start()
