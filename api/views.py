@@ -6,14 +6,15 @@ from django.views.decorators.csrf import csrf_exempt
 
 from tracker.fetcher import SatelliteProxy, SatellitePosition
 
-from .mqtt_broker import get_client, start_connection, connection_topic
+# get_client, start_connection, connection_topic
+from .mqtt_broker import AnntenaCommand
 
 # space_station = SatellitePosition()
 # space_station.satid = 25544
 
 proxy = SatelliteProxy()
 
-start_connection()
+# start_connection()
 
 
 def get_position(position: SatellitePosition):
@@ -60,11 +61,15 @@ def mqtt_dispatch(request):
 
     code = data.get('code')
     topic = data.get('topic')
+    success = False
 
     if code and topic:
-        client = get_client()
-        client.publish(topic, f"{code}")
+        command = AnntenaCommand(code, topic)
+        success = command.execute()
 
+        #client = get_client()
+        #client.publish(topic, f"{code}")
+    if success:
         return JsonResponse({"dispatch": True})
     else:
         return JsonResponse({"dispatch": False})
