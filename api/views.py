@@ -1,15 +1,20 @@
+import json
+
 from django.shortcuts import render
 from django.http import JsonResponse
-
-from threading import Thread
-from time import sleep
+from django.views.decorators.csrf import csrf_exempt
 
 from tracker.fetcher import SatelliteProxy, SatellitePosition
+
+# get_client, start_connection, connection_topic
+from .mqtt_broker import AnntenaCommand
 
 # space_station = SatellitePosition()
 # space_station.satid = 25544
 
 proxy = SatelliteProxy()
+
+# start_connection()
 
 
 def get_position(position: SatellitePosition):
@@ -44,3 +49,27 @@ def track_satellite(request, satid):
 def stop_tracking(request):
     proxy.switch_state("not_selected")
     return JsonResponse({"tracking": "stoped"})
+
+
+@csrf_exempt
+def mqtt_dispatch(request):
+    data = json.loads(request.body)
+
+    print("="*80)
+    print(data, data.get('code'))
+    print("="*80)
+
+    code = data.get('code')
+    topic = data.get('topic')
+    success = False
+
+    if code and topic:
+        command = AnntenaCommand(code, topic)
+        success = command.execute()
+
+        #client = get_client()
+        #client.publish(topic, f"{code}")
+    if success:
+        return JsonResponse({"dispatch": True})
+    else:
+        return JsonResponse({"dispatch": False})

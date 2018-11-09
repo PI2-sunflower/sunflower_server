@@ -13,3 +13,4 @@ services:
     environment:
       MODE_ENVIROMENT: dev
       N2YO_API_KEY: ${N2YO_API_KEY}
+      MQTT_HOST: ${MQTT_HOST}
