@@ -1,10 +1,13 @@
 import json
 
-from django.shortcuts import render
+from datetime import datetime, timedelta, timezone
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from tracker.fetcher import SatelliteProxy, SatellitePosition
+from satellite.satellite import Satellite
+from tracker.fetcher import SatelliteProxy, SatellitePosition, TargetParams, \
+    Tracker
 
 # get_client, start_connection, connection_topic
 from .mqtt_broker import AnntenaCommand
@@ -76,12 +79,28 @@ def mqtt_dispatch(request):
 
 def get_interval_positions(request, satid, second, day, month, year,
                            count, step):
+    tracker = Tracker(satid=satid)
+    tle = tracker.fetch(target=TargetParams.TLE).get('tle', None)
+    tle = tle.split('\r\n')
+
+    start = datetime(second=second, day=day, month=month, year=year,
+            tzinfo=timezone.utc)
+
+    satellite = Satellite(*tle)
+    positions_dates = satellite.propagate_positions_step(start=start, count=count,
+                   step=step)
+    positions, dates = list(zip(*positions_dates))
+    x, y, z = list(zip(*positions))
+
     response = {
         'satid': satid,
-        'second': second,
-        'month': month,
-        'year': year,
+        'start': start,
         'count': count,
         'step': step,
+        'tle': tle,
+        'x_position': x,
+        'y_position': y,
+        'z_position': z,
+        'dates': dates,
     }
     return JsonResponse(response)
