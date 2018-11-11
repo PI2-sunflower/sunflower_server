@@ -73,3 +73,15 @@ def mqtt_dispatch(request):
         return JsonResponse({"dispatch": True})
     else:
         return JsonResponse({"dispatch": False})
+
+def get_interval_positions(request, satid, second, day, month, year,
+                           count, step):
+    response = {
+        'satid': satid,
+        'second': second,
+        'month': month,
+        'year': year,
+        'count': count,
+        'step': step,
+    }
+    return JsonResponse(response)

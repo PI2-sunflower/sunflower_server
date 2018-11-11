@@ -37,7 +37,7 @@ class Tracker:
         elif target == TargetParams.POSITIONS:
             request_uri = self._positions_uri
         else:
-            raise "Invalid Target"
+            raise ValueError('Invalid Target')
 
         response = request.urlopen(request_uri)
 
