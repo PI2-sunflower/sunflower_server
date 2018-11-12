@@ -78,8 +78,8 @@ def mqtt_dispatch(request):
     else:
         return JsonResponse({"dispatch": False})
 
-def get_interval_positions(request, norad, second, day, month, year,
-                           count, step):
+def get_stepped_positions(request, norad, second, day, month, year,
+                          count, step):
     tle = get_and_update_tle(norad)
     start = datetime(second=second, day=day, month=month, year=year,
             tzinfo=timezone.utc)
@@ -92,13 +92,37 @@ def get_interval_positions(request, norad, second, day, month, year,
 
     response = {
         'norad_id': norad,
-        'start': start,
         'count': count,
         'step': step,
         'tle': tle,
         'x_position': x,
         'y_position': y,
         'z_position': z,
+        'dates': dates,
+    }
+    return JsonResponse(response)
+
+def get_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
+                                  observer_alt, second, day, month, year,
+                                  count, step):
+    tle = get_and_update_tle(norad)
+    start = datetime(second=second, day=day, month=month, year=year,
+            tzinfo=timezone.utc)
+
+    satellite = Satellite(*tle)
+    az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon, observer_alt, start, count, step)
+    az, el = list(zip(*az_el))
+
+    response = {
+        'norad_id': norad,
+        'observer_latitude': observer_lat,
+        'observer_longitude': observer_lon,
+        'observer_altitude': observer_alt,
+        'count': count,
+        'step': step,
+        'tle': tle,
+        'azimuth': az,
+        'elevation': el,
         'dates': dates,
     }
     return JsonResponse(response)

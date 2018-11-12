@@ -6,6 +6,7 @@ from . import converters, views
 
 register_converter(converters.FourDigitYearConverter, 'yyyy')
 register_converter(converters.TwoDigitYearConverter, 'xx')
+register_converter(converters.FloarConverter, 'float')
 
 urlpatterns = [
     path('api/track-data', views.get_satellite_data, name='get_satellite_data'),
@@ -15,7 +16,13 @@ urlpatterns = [
 ]
 
 urlpatterns += [
-    path('api/positions-interval/<int:norad>/<xx:second>/<xx:day>/<xx:month>' \
-         '/<yyyy:year>/<int:count>/<int:step>', views.get_interval_positions,
+    path('api/track_eci/<int:norad>/<xx:second>/<xx:day>/<xx:month>' \
+         '/<yyyy:year>/<int:count>/<int:step>', views.get_stepped_positions,
          name='positions_interval'),
+
+    path('api/track_azimuth_elevation/<int:norad>/<float:observer_lat>/' \
+         '<float:observer_lon>/<float:observer_alt>/<xx:second>/<xx:day>/' \
+         '<xx:month>/<yyyy:year>/<int:count>/<int:step>',
+         views.get_stepped_azimuth_elevation,
+         name='positions_observer'),
 ]
