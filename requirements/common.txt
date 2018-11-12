@@ -1,7 +1,7 @@
 Django==2.1.2
 django-cors-headers==2.4.0
 paho-mqtt==1.4.0
-numpy
-pandas
-sgp4
+numpy==1.15
+pandas==0.23.4
+sgp4==1.4
 pymap3d
