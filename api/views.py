@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from satellite.satellite import Satellite
+from satellite.tle_getter import get_and_update_tle
 from tracker.fetcher import SatelliteProxy, SatellitePosition, TargetParams, \
     Tracker
 
@@ -77,12 +78,9 @@ def mqtt_dispatch(request):
     else:
         return JsonResponse({"dispatch": False})
 
-def get_interval_positions(request, satid, second, day, month, year,
+def get_interval_positions(request, norad, second, day, month, year,
                            count, step):
-    tracker = Tracker(satid=satid)
-    tle = tracker.fetch(target=TargetParams.TLE).get('tle', None)
-    tle = tle.split('\r\n')
-
+    tle = get_and_update_tle(norad)
     start = datetime(second=second, day=day, month=month, year=year,
             tzinfo=timezone.utc)
 
@@ -93,7 +91,7 @@ def get_interval_positions(request, satid, second, day, month, year,
     x, y, z = list(zip(*positions))
 
     response = {
-        'satid': satid,
+        'norad_id': norad,
         'start': start,
         'count': count,
         'step': step,

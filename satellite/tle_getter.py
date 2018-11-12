@@ -1,78 +1,47 @@
-import os
-from datetime import datetime, timezone
+from django.utils import timezone
 
-import requests
+from api.models import Tle
+from tracker.fetcher import TargetParams, Tracker
+from satellite.tle import TLE
 
-
-API_KEYS = {
-    'N2YO': os.environ.get('N2YO_KEY', ''),
-}
-
-SATELLITES_IDS = {
-    'ISS': 25544,
-    'BRISAT': 41591,
-    'AQUARIUS': 37673,
-    'ARIANE': 25990,
-    'TELSTAR4': 23670,
-}
+TLE_UPDATE_TIME = 30 # Unit: seconds
 
 
-def get_tle(norad_id=None, name=None):
-    '''Gets satellite's TLE from it's NORAG id:
-    https://en.wikipedia.org/wiki/Satellite_Catalog_Number'''
-    
-    if norad_id is None:
-        if name is not None:
-            norad_id = SATELLITES_IDS[name]
-        else:    
-            raise ValueError('NORAD id or satellite\'s name must be given')
+def fetch_new_tle(norad):
+    tracker = Tracker(satid=norad)
+    tle = tracker.fetch(target=TargetParams.TLE).get('tle', None)
+    tle = tle.split('\r\n')
+    tle_wrapper = TLE(*tle)
+    return tle_wrapper
 
-    API_NAME = 'N2YO'
-    ENDPOINT = 'https://www.n2yo.com/rest/v1/satellite/tle/{}&apiKey={}'
+def save_or_update_tle_in_db(tle):
+    assert(len(tle) == 2)
 
-    url = ENDPOINT.format(norad_id, API_KEYS[API_NAME])
-    response = requests.get(url).json()
-
-    tle = response['tle']
-    line1, line2 = tle.split('\r\n')
-    return line1, line2
-
-def get_az_el(lat, lng, alt, norad_id=None, name=None, seconds=1):
-    '''Gets satellite's AZ/EL from it's NORAD id:
-    https://en.wikipedia.org/wiki/Satellite_Catalog_Number'''
-
-    if norad_id is None:
-        if name is not None:
-            norad_id = SATELLITES_IDS[name]
+def get_and_update_tle(norad):
+    should_fetch_tle = False
+    now = timezone.now()
+    try:
+        tle = Tle.objects.get(norad=norad)
+        update_delta = now - tle.updated_at
+        if update_delta.total_seconds() < TLE_UPDATE_TIME:
+            response = tle.line1, tle.line2
         else:
-            raise ValueError('NORAD id or satellite\'s name must be given')
+            print('Current TLE for NORAD={} is outdated.'.format(norad))
+            should_fetch_tle = True
+    except Tle.DoesNotExist:
+        print('No TLE for NORAD={} on database.'.format(norad))
+        should_fetch_tle = True
 
-    API_NAME = 'N2YO'
-    ENDPOINT = 'https://www.n2yo.com/rest/v1/satellite/positions/{}/{}/{}/{}/{}/&apiKey={}'
+    if should_fetch_tle:
+        print('Downloading and updating database TLE for norad=[{}]'.format(norad))
+        tle = fetch_new_tle(norad)
+        new_tle_value = {
+            'line1': tle.tle_line1,
+            'line2': tle.tle_line2,
+            'updated_at': now,
+        }
+        Tle.objects.update_or_create(norad=norad, defaults=new_tle_value)
+        response = tle.tle
 
+    return response
 
-    url = ENDPOINT.format(norad_id, lat, lng, alt, seconds, API_KEYS[API_NAME])
-    response = requests.get(url).json()
-    positions = response['positions']
-
-    az = []
-    el = []
-    dates = []
-
-    for i in range(len(positions)):
-        az.append(positions[i]['azimuth'])
-        el.append(positions[i]['elevation'])
-
-        timestamp = positions[i]['timestamp']
-        date = datetime.utcfromtimestamp(timestamp).replace(tzinfo=timezone.utc)
-        dates.append(date)
-
-    return az, el, dates
-
-
-if __name__ == '__main__':
-    print('API_KEYS = {}'.format(API_KEYS))
-
-    id = SATELLITES_IDS['ISS']
-    tle = get_tle(id)
-    print('tle = {}'.format(tle))

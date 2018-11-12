@@ -103,6 +103,9 @@ class TLE:
         self.jdsatepoch = jday(year,mon,day,hr,minute,sec);
         self._epoch = datetime(year, mon, day, hr, minute, int(sec_whole),
                                 int(sec_fraction * 1000000.0 // 1.0), tzinfo=timezone.utc)
+    @property
+    def norad(self):
+        return self._satnum
 
     @property
     def epoch(self):

@@ -15,7 +15,7 @@ urlpatterns = [
 ]
 
 urlpatterns += [
-    path('api/positions-interval/<int:satid>/<xx:second>/<xx:day>/<xx:month>' \
+    path('api/positions-interval/<int:norad>/<xx:second>/<xx:day>/<xx:month>' \
          '/<yyyy:year>/<int:count>/<int:step>', views.get_interval_positions,
          name='positions_interval'),
 ]
