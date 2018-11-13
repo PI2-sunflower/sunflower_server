@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 
 import os
 
+MODE_ENVIROMENT = os.environ.get('MODE_ENVIROMENT', "dev")
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -23,7 +25,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'q%m)i6k72qm_xa#l4+i!tx=#omu1x*t+v8%dt8fa(y!1o9(hfp'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True if (MODE_ENVIROMENT == "dev" or
+                 MODE_ENVIROMENT == "test") else False
 
 ALLOWED_HOSTS = [
     '0.0.0.0',
@@ -132,6 +135,16 @@ STATIC_URL = '/static/'
 
 # My config
 
-MODE_ENVIROMENT = os.environ.get('MODE_ENVIROMENT', "dev")
-
 CORS_ORIGIN_ALLOW_ALL = True
+
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+if MODE_ENVIROMENT == "dev":  # For prod, nginx will handle static files
+    STATICFILES_FINDERS = [
+        'django.contrib.staticfiles.finders.FileSystemFinder',
+        'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    ]
+
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+MEDIA_URL = '/media/'
