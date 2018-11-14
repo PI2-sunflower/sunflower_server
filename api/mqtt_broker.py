@@ -3,6 +3,8 @@ import os
 import paho.mqtt.client as mqtt
 from time import sleep
 
+from sunflower_ll.translator import Translator
+
 # 10.0.0.222
 MQTT_HOST = os.environ.get('MQTT_HOST', "localhost")
 #connection_topic = "OLA"
@@ -41,23 +43,39 @@ print("="*80)
 
 
 class AnntenaCommand:
-    __slots__ = ('command', 'topic', 'mqtt_client',)
+    __slots__ = ('command', 'tr', 'mqtt_client', 'params',)
 
-    def __init__(self, command, topic):
+    def __init__(self, command, params=None):
         self.command = command
-        self.topic = topic
+        self.params = params
         self.mqtt_client = mqtt.Client("C1")
+        self.tr = Translator()
 
     def execute(self):
+        if self.command == "move_axis":
+            print("="*80)
+            print(self.params)
+            print("="*80)
+
+            self.tr.set_axis_angles(self.params)
+            output = self.tr.move_axis()
+        else:
+            output = self._get_broker_output(self.command)
+
         try:
             self.mqtt_client.connect(MQTT_HOST, 1883, 60)
-            self.mqtt_client.publish(self.topic, self.command)
+            self.mqtt_client.publish(output["topic"], output["command"])
             self.mqtt_client.disconnect()
 
             return True
         except Exception as e:
-            print("="*80)
-            print(e)
-            print("="*80)
-
             return False
+
+    def _get_broker_output(self, command):
+        action = getattr(self.tr, command, None)
+        broker_output = dict()
+
+        if action is not None:
+            broker_output = action()
+
+        return broker_output

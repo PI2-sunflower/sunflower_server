@@ -20,6 +20,12 @@ proxy = SatelliteProxy()
 
 # start_connection()
 
+VALID_COMMANDS = [
+    "go_up", "go_down", "stop_up_down",
+    "expand", "retract", "stop_expand_retract",
+    "move_axis",
+]
+
 
 def get_position(position: SatellitePosition):
     data = {
@@ -31,6 +37,10 @@ def get_position(position: SatellitePosition):
     }
 
     return data
+
+
+def get_commands(request):
+    return JsonResponse(VALID_COMMANDS, safe=False)
 
 
 def get_satellite_data(request):
@@ -59,16 +69,12 @@ def stop_tracking(request):
 def mqtt_dispatch(request):
     data = json.loads(request.body)
 
-    print("="*80)
-    print(data, data.get('code'))
-    print("="*80)
-
-    code = data.get('code')
-    topic = data.get('topic')
+    command = data.get('command')
+    params = data.get('params')
     success = False
 
-    if code and topic:
-        command = AnntenaCommand(code, topic)
+    if command in VALID_COMMANDS:
+        command = AnntenaCommand(command, params)
         success = command.execute()
 
         #client = get_client()
@@ -78,15 +84,16 @@ def mqtt_dispatch(request):
     else:
         return JsonResponse({"dispatch": False})
 
+
 def get_stepped_positions(request, norad, second, day, month, year,
                           count, step):
     tle = get_and_update_tle(norad)
     start = datetime(second=second, day=day, month=month, year=year,
-            tzinfo=timezone.utc)
+                     tzinfo=timezone.utc)
 
     satellite = Satellite(*tle)
     positions_dates = satellite.propagate_positions_step(start=start, count=count,
-                   step=step)
+                                                         step=step)
     positions, dates = list(zip(*positions_dates))
     x, y, z = list(zip(*positions))
 
@@ -102,15 +109,17 @@ def get_stepped_positions(request, norad, second, day, month, year,
     }
     return JsonResponse(response)
 
+
 def get_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
                                   observer_alt, second, day, month, year,
                                   count, step):
     tle = get_and_update_tle(norad)
     start = datetime(second=second, day=day, month=month, year=year,
-            tzinfo=timezone.utc)
+                     tzinfo=timezone.utc)
 
     satellite = Satellite(*tle)
-    az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon, observer_alt, start, count, step)
+    az_el, dates = satellite.propagate_az_el_step(
+        observer_lat, observer_lon, observer_alt, start, count, step)
     az, el = list(zip(*az_el))
 
     response = {
