@@ -72,17 +72,15 @@ def mqtt_dispatch(request):
     command = data.get('command')
     params = data.get('params')
     success = False
+    message = ""
 
     if command in VALID_COMMANDS:
         command = AnntenaCommand(command, params)
-        success = command.execute()
-
-        #client = get_client()
-        #client.publish(topic, f"{code}")
-    if success:
-        return JsonResponse({"dispatch": True})
+        (success, message) = command.execute()
     else:
-        return JsonResponse({"dispatch": False})
+        message = "Invalid command"
+
+    return JsonResponse({"dispatch": success, "message": message})
 
 
 def get_stepped_positions(request, norad, second, day, month, year,
