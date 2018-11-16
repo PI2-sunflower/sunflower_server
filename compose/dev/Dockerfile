@@ -20,6 +20,7 @@ WORKDIR /sunserver
 
 COPY requirements /sunserver/requirements
 RUN pip3 install -r requirements/dev.txt
+RUN pip3 install -i https://test.pypi.org/simple/ sunflower-low-level
 ADD . /sunserver/
 RUN chmod +x compose/entrypoint.sh
 

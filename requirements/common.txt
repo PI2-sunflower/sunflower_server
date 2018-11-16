@@ -6,4 +6,3 @@ pandas==0.23.4
 sgp4==1.4
 matplotlib==2.2.3
 pymap3d==1.7.11
-sunflower-low-level==0.0.3
