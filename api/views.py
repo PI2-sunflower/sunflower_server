@@ -97,18 +97,21 @@ def get_stepped_positions(request, norad, year, month, day, hour, minute,
     satellite = Satellite(*tle)
     positions_dates = satellite.propagate_positions_step(start=start,
                       count=count, step=step)
-    positions, dates = list(zip(*positions_dates))
-    x, y, z = list(zip(*positions))
-
+    positions = []
+    for xyz, date in positions_dates:
+        x, y, z = xyz
+        positions.append({
+            'x': x,
+            'y': y,
+            'z': z,
+            'date': date,
+        })
     response = {
         'norad_id': norad,
         'count': count,
         'step': step,
         'tle': tle,
-        'x_position': x,
-        'y_position': y,
-        'z_position': z,
-        'dates': dates,
+        'positions': positions,
     }
     return JsonResponse(response)
 
@@ -129,7 +132,16 @@ def get_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
     satellite = Satellite(*tle)
     az_el, dates = satellite.propagate_az_el_step(
         observer_lat, observer_lon, observer_alt, start, count, step)
-    az, el = list(zip(*az_el))
+
+    az_el_dates = []
+    for i, azimuth_elevation in enumerate(az_el):
+        azimuth, elevation = azimuth_elevation
+        az_el_date = {
+            'azimuth': azimuth,
+            'elevation': elevation,
+            'date': dates[i],
+        }
+        az_el_dates.append(az_el_date)
 
     response = {
         'norad_id': norad,
@@ -139,8 +151,6 @@ def get_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
         'count': count,
         'step': step,
         'tle': tle,
-        'azimuth': az,
-        'elevation': el,
-        'dates': dates,
+        'positions': az_el_dates,
     }
     return JsonResponse(response)
