@@ -2,6 +2,9 @@ import os
 
 import paho.mqtt.client as mqtt
 from time import sleep
+from typing import Tuple
+
+from sunflower_ll.translator import Translator, validate_axis
 
 # 10.0.0.222
 MQTT_HOST = os.environ.get('MQTT_HOST', "localhost")
@@ -41,23 +44,43 @@ print("="*80)
 
 
 class AnntenaCommand:
-    __slots__ = ('command', 'topic', 'mqtt_client',)
+    __slots__ = ('command', 'tr', 'mqtt_client', 'params',)
 
-    def __init__(self, command, topic):
+    def __init__(self, command, params=None):
         self.command = command
-        self.topic = topic
+        self.params = params
         self.mqtt_client = mqtt.Client("C1")
+        self.tr = Translator()
 
-    def execute(self):
+    def execute(self) -> Tuple[bool, str]:
+        if self.command == "move_axis":
+            invalid_angles = validate_axis({
+                **{'angle_1': 0, 'angle_2': 0, 'angle_3': 0},
+                **self.params
+            })
+
+            if invalid_angles == 1:
+                return (False, "Invalid angles")
+
+            self.tr.set_axis_angles(self.params)
+            output = self.tr.move_axis()
+        else:
+            output = self._get_broker_output(self.command)
+
         try:
             self.mqtt_client.connect(MQTT_HOST, 1883, 60)
-            self.mqtt_client.publish(self.topic, self.command)
+            self.mqtt_client.publish(output["topic"], output["command"])
             self.mqtt_client.disconnect()
 
-            return True
+            return (True, "")
         except Exception as e:
-            print("="*80)
-            print(e)
-            print("="*80)
+            return (False, "Could not connect to broker")
 
-            return False
+    def _get_broker_output(self, command):
+        action = getattr(self.tr, command, None)
+        broker_output = dict()
+
+        if action is not None:
+            broker_output = action()
+
+        return broker_output
