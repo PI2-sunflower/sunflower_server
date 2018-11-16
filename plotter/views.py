@@ -30,7 +30,8 @@ def plot_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
     az, el = list(zip(*az_el))
 
     figure = plotter.plot_az_el(az, el)
-    plt.title('NORAD: {}'.format(norad))
+    TITLE_FONT_SIZE = 10
+    plt.title('NORAD: {}'.format(norad), fontsize=TITLE_FONT_SIZE)
 
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
