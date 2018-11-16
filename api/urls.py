@@ -18,13 +18,14 @@ urlpatterns = [
 ]
 
 urlpatterns += [
-    path('track_eci/<int:norad>/<xx:second>/<xx:day>/<xx:month>'
-         '/<yyyy:year>/<int:count>/<int:step>', views.get_stepped_positions,
-         name='positions_interval'),
+    path('track_eci/<int:norad>/<yyyy:year>/<xx:month>/<xx:day>/<xx:hour>/' \
+         '<xx:minute>/<xx:second>/<int:count>/<int:step>',
+         views.get_stepped_positions, name='track_eci'),
 
-    path('track_azimuth_elevation/<int:norad>/<float:observer_lat>/'
-         '<float:observer_lon>/<float:observer_alt>/<xx:second>/<xx:day>/'
-         '<xx:month>/<yyyy:year>/<int:count>/<int:step>',
+    path('track_azimuth_elevation/<int:norad>/<float:observer_lat>/' \
+         '<float:observer_lon>/<float:observer_alt>/<yyyy:year>/<xx:month>/' \
+         '<xx:day>/<xx:hour>/<xx:minute>/<xx:second>/<int:count>/<int:step>',
          views.get_stepped_azimuth_elevation,
-         name='positions_observer'),
+         name='track_azimuth_elevation'),
+#def propagate(self, year, month=1, day=1, hour=0, minute=0, second=0.0):
 ]

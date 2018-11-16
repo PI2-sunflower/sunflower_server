@@ -83,15 +83,20 @@ def mqtt_dispatch(request):
     return JsonResponse({"dispatch": success, "message": message})
 
 
-def get_stepped_positions(request, norad, second, day, month, year,
-                          count, step):
+def get_stepped_positions(request, norad, year, month, day, hour, minute,
+                          second, count, step):
     tle = get_and_update_tle(norad)
-    start = datetime(second=second, day=day, month=month, year=year,
+    start = datetime(year=year,
+                     month=month,
+                     day=day,
+                     hour=hour,
+                     minute=minute,
+                     second=second,
                      tzinfo=timezone.utc)
 
     satellite = Satellite(*tle)
-    positions_dates = satellite.propagate_positions_step(start=start, count=count,
-                                                         step=step)
+    positions_dates = satellite.propagate_positions_step(start=start,
+                      count=count, step=step)
     positions, dates = list(zip(*positions_dates))
     x, y, z = list(zip(*positions))
 
@@ -109,10 +114,16 @@ def get_stepped_positions(request, norad, second, day, month, year,
 
 
 def get_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
-                                  observer_alt, second, day, month, year,
-                                  count, step):
+                                  observer_alt, year, month, day, hour, minute,
+                                  second, count, step):
+
     tle = get_and_update_tle(norad)
-    start = datetime(second=second, day=day, month=month, year=year,
+    start = datetime(year=year,
+                     month=month,
+                     day=day,
+                     hour=hour,
+                     minute=minute,
+                     second=second,
                      tzinfo=timezone.utc)
 
     satellite = Satellite(*tle)

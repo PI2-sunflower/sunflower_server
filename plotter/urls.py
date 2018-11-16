@@ -11,8 +11,8 @@ register_converter(converters.FloarConverter, 'float')
 
 urlpatterns = [
     path('plot_azimuth_elevation/<int:norad>/<float:observer_lat>/' \
-         '<float:observer_lon>/<float:observer_alt>/<xx:second>/<xx:day>/' \
-         '<xx:month>/<yyyy:year>/<int:count>/<int:step>',
+         '<float:observer_lon>/<float:observer_alt>/<yyyy:year>/<xx:month>/' \
+         '<xx:day>/<xx:hour>/<xx:minute>/<xx:second>/<int:count>/<int:step>',
          views.plot_stepped_azimuth_elevation,
          name='plot_azimuth_elevation'),
 ]

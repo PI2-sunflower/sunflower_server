@@ -14,11 +14,16 @@ import io
 
 
 def plot_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
-                                  observer_alt, second, day, month, year,
-                                  count, step):
+                                   observer_alt, year, month, day, hour,
+                                   minute, second, count, step):
     tle = get_and_update_tle(norad)
-    start = datetime(second=second, day=day, month=month, year=year,
-            tzinfo=timezone.utc)
+    start = datetime(year=year,
+                     month=month,
+                     day=day,
+                     hour=hour,
+                     minute=minute,
+                     second=second,
+                     tzinfo=timezone.utc)
 
     satellite = Satellite(*tle)
     az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon, observer_alt, start, count, step)
