@@ -22,7 +22,8 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_message(client, userdata, msg):
-    print(msg.topic+" "+str(msg.payload))
+    # print(msg.topic+" "+str(msg.payload))
+    pass
 
 mqtt_client = mqtt.Client("C1")
 mqtt_client.on_connect = on_connect
@@ -64,6 +65,8 @@ class AnntenaCommand:
         try:
             #self.mqtt_client.connect(MQTT_HOST, 1883, 60)
             global mqtt_client
+            print("SENT TO BROKER")
+            print("TOPIC: {}\n COMMAND: {}".format(output["topic"], output["command"]))
             mqtt_client.publish(output["topic"], output["command"])
             # mqtt_client.disconnect()
 

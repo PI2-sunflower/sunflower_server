@@ -8,17 +8,28 @@ from time import sleep
 from enum import IntEnum
 from datetime import datetime, timedelta
 
+from satellite.satellite import Satellite as SGP4Sat
+from satellite import tle_getter
+
+from api.mqtt_broker import AnntenaCommand
 
 API_KEY = os.environ.get('N2YO_API_KEY', "blank")
 BASE_URI = "https://www.n2yo.com/rest/v1"
-ID = "25544"
-MY_LAT = "-15.77972"
-MY_LONG = "-47.92972"
-MY_ALT = "0"
+ID = 25544
+MY_LAT = -15.77972
+MY_LONG = -47.92972
+MY_ALT = 500
 POSITIONS_COUNT = 60
 
 # SATELLITE_URI = f"{BASE_URI}/satellite/positions/{ID}/{MY_LAT}/{MY_LONG}/{MY_ALT}/1/&apiKey={API_KEY}"
 
+
+def get_user_position():
+    return {
+        "latitude": MY_LAT,
+        "longitude": MY_LONG,
+        "altitude": MY_ALT,
+    }
 
 class TargetParams(IntEnum):
     TLE = 1
@@ -128,6 +139,28 @@ class SatelliteTrackerState(Satellite):
             self._track_position()
 
     def _track_position(self):
+        def ping_antenna():
+            tle = tle_getter.fetch_new_tle(self.position.satid)
+            tle = tle.tle
+
+            user_position = get_user_position()
+            satellite = SGP4Sat(*tle)
+
+            while self._keep_tracking:
+                (az, el) = satellite.get_observer_azimuth_elevation(
+                    user_position["latitude"],
+                    user_position["longitude"],
+                    user_position["altitude"],
+                )
+
+                command = AnntenaCommand(
+                    "move_axis", {"angle_1": az, "angle_2": el, "angle_3": 0}
+                )
+                command.execute()
+
+                sleep(1)
+
+
         def track_thread():
             tracker = Tracker(self.position.satid)
             sleep_time = 1
@@ -178,6 +211,9 @@ class SatelliteTrackerState(Satellite):
 
         t = Thread(target=track_thread)
         t.start()
+
+        ping_process = Thread(target=ping_antenna)
+        ping_process.start()
 
 
 class SatelliteProxy(Satellite):
