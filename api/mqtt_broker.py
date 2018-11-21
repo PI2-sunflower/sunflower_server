@@ -3,11 +3,12 @@ import os
 import paho.mqtt.client as mqtt
 from time import sleep
 from typing import Tuple
+from threading import Thread 
 
 from sunflower_ll.translator import Translator, validate_axis
 
 # 10.0.0.222
-MQTT_HOST = os.environ.get('MQTT_HOST', "localhost")
+MQTT_HOST = "localhost" #os.environ.get('MQTT_HOST', "localhost")
 #connection_topic = "OLA"
 
 print("="*80)
@@ -15,33 +16,26 @@ print(f"HOST: {MQTT_HOST}")
 print("="*80)
 
 
-# def on_connect(client, userdata, flags, rc):
-#    if rc == 0:
-#        print('connecting')
-#        client.connected_flag = True
-#        client.publish(connection_topic, 1, retain=True)
-#    else:
-#        client.bad_connection_flag = True
+def on_connect(client, userdata, flags, rc):
+    print("Connected with result code "+str(rc))
+    client.subscribe("$SYS/#")
 
 
-#client = mqtt.Client("C1")
+def on_message(client, userdata, msg):
+    print(msg.topic+" "+str(msg.payload))
 
-#client.connected_flag = False
-#client.on_connect = on_connect
+mqtt_client = mqtt.Client("C1")
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
 
+def mqtt_start_connection():
+    global mqtt_client
 
-# def start_connection():
-#    print("START MQTT CONNECTION")
-#    client.connect(MQTT_HOST, 1883, 60)
+    mqtt_client.connect(MQTT_HOST, 1883, 60)
+    mqtt_client.loop_forever()
 
-# while not client.connected_flag:  # wait in loop
-#    print("In wait loop")
-#    sleep(1)
-
-
-# def get_client():
-#    return client
-
+process = Thread(target=mqtt_start_connection)
+process.start()
 
 class AnntenaCommand:
     __slots__ = ('command', 'tr', 'mqtt_client', 'params',)
@@ -68,9 +62,10 @@ class AnntenaCommand:
             output = self._get_broker_output(self.command)
 
         try:
-            self.mqtt_client.connect(MQTT_HOST, 1883, 60)
-            self.mqtt_client.publish(output["topic"], output["command"])
-            self.mqtt_client.disconnect()
+            #self.mqtt_client.connect(MQTT_HOST, 1883, 60)
+            global mqtt_client
+            mqtt_client.publish(output["topic"], output["command"])
+            # mqtt_client.disconnect()
 
             return (True, "")
         except Exception as e:
