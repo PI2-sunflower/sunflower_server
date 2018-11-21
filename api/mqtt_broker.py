@@ -3,48 +3,54 @@ import os
 import paho.mqtt.client as mqtt
 from time import sleep
 from typing import Tuple
+from threading import Thread
 
 from sunflower_ll.translator import Translator, validate_axis
 
 # 10.0.0.222
-MQTT_HOST = os.environ.get('MQTT_HOST', "localhost")
-#connection_topic = "OLA"
+MQTT_HOST = "localhost"  # os.environ.get('MQTT_HOST', "localhost")
+# connection_topic = "OLA"
 
-print("="*80)
+print("=" * 80)
 print(f"HOST: {MQTT_HOST}")
-print("="*80)
+print("=" * 80)
+
+flag_connected = 0
 
 
-# def on_connect(client, userdata, flags, rc):
-#    if rc == 0:
-#        print('connecting')
-#        client.connected_flag = True
-#        client.publish(connection_topic, 1, retain=True)
-#    else:
-#        client.bad_connection_flag = True
+def on_connect(client, userdata, flags, rc):
+    global flag_connected
+
+    #print("Connected with result code " + str(rc))
+    flag_connected = 1
 
 
-#client = mqtt.Client("C1")
-
-#client.connected_flag = False
-#client.on_connect = on_connect
-
-
-# def start_connection():
-#    print("START MQTT CONNECTION")
-#    client.connect(MQTT_HOST, 1883, 60)
-
-# while not client.connected_flag:  # wait in loop
-#    print("In wait loop")
-#    sleep(1)
+def on_message(client, userdata, msg):
+    # print(msg.topic+" "+str(msg.payload))
+    pass
 
 
-# def get_client():
-#    return client
+mqtt_client = mqtt.Client("C1")
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+
+
+def mqtt_start_connection():
+    global flag_connected
+    global mqtt_client
+
+    if flag_connected == 0:
+        print("CONNECTING TO BROKER")
+        mqtt_client.connect(MQTT_HOST, 1883, 60)
+        mqtt_client.loop_forever()
+
+
+# process = Thread(target=mqtt_start_connection)
+# process.start()
 
 
 class AnntenaCommand:
-    __slots__ = ('command', 'tr', 'mqtt_client', 'params',)
+    __slots__ = ("command", "tr", "mqtt_client", "params")
 
     def __init__(self, command, params=None):
         self.command = command
@@ -54,10 +60,9 @@ class AnntenaCommand:
 
     def execute(self) -> Tuple[bool, str]:
         if self.command == "move_axis":
-            invalid_angles = validate_axis({
-                **{'angle_1': 0, 'angle_2': 0, 'angle_3': 0},
-                **self.params
-            })
+            invalid_angles = validate_axis(
+                {**{"angle_1": 0, "angle_2": 0, "angle_3": 0}, **self.params}
+            )
 
             if invalid_angles == 1:
                 return (False, "Invalid angles")
@@ -68,9 +73,12 @@ class AnntenaCommand:
             output = self._get_broker_output(self.command)
 
         try:
-            self.mqtt_client.connect(MQTT_HOST, 1883, 60)
-            self.mqtt_client.publish(output["topic"], output["command"])
-            self.mqtt_client.disconnect()
+            # self.mqtt_client.connect(MQTT_HOST, 1883, 60)
+            global mqtt_client
+            print("SENT TO BROKER")
+            print("TOPIC: {}\n COMMAND: {}".format(output["topic"], output["command"]))
+            mqtt_client.publish(output["topic"], output["command"])
+            # mqtt_client.disconnect()
 
             return (True, "")
         except Exception as e:
