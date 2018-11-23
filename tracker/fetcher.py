@@ -7,11 +7,14 @@ from threading import Thread
 from time import sleep
 from enum import IntEnum
 from datetime import datetime, timedelta
+from django.utils import timezone
 
 from satellite.satellite import Satellite as SGP4Sat
 from satellite import tle_getter
 
 from api.mqtt_broker import AnntenaCommand
+
+from tracker.position import arm_position_instance
 
 API_KEY = os.environ.get('N2YO_API_KEY', "blank")
 BASE_URI = "https://www.n2yo.com/rest/v1"
@@ -24,11 +27,13 @@ POSITIONS_COUNT = 60
 # SATELLITE_URI = f"{BASE_URI}/satellite/positions/{ID}/{MY_LAT}/{MY_LONG}/{MY_ALT}/1/&apiKey={API_KEY}"
 
 
-def get_user_position():
+def get_position():
+    position = arm_position_instance()
+
     return {
-        "latitude": MY_LAT,
-        "longitude": MY_LONG,
-        "altitude": MY_ALT,
+        "latitude": position.latitude,
+        "longitude": position.longitude,
+        "altitude": position.altitude,
     }
 
 class TargetParams(IntEnum):
@@ -142,19 +147,22 @@ class SatelliteTrackerState(Satellite):
         def ping_antenna():
             tle = tle_getter.get_and_update_tle_from_disk(self.position.satid)
 
-            user_position = get_user_position()
+            arm_position = get_position()
             satellite = SGP4Sat(*tle)
 
             while self._keep_tracking:
+                now = datetime.now()
+                # now.tzinfo = timezone.utc
+
                 (az, el) = satellite.get_observer_azimuth_elevation(
-                    user_position["latitude"],
-                    user_position["longitude"],
-                    user_position["altitude"],
+                    arm_position["latitude"],
+                    arm_position["longitude"],
+                    arm_position["altitude"],
+                    now
                 )
 
-                command = AnntenaCommand(
-                    "move_axis", {"angle_1": az, "angle_2": el, "angle_3": 0}
-                )
+                action = {"angle_1": az, "angle_2": el, "angle_3": 0}
+                command = AnntenaCommand("move_axis", action)
                 command.execute()
 
                 sleep(1)
