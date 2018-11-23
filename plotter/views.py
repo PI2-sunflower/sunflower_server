@@ -26,7 +26,8 @@ def plot_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
                      tzinfo=timezone.utc)
 
     satellite = Satellite(*tle)
-    az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon, observer_alt, start, count, step)
+    az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon,
+    observer_alt, start, count=count, step=step)
     az, el = list(zip(*az_el))
 
     figure = plotter.plot_az_el(az, el)

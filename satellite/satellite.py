@@ -95,7 +95,8 @@ class Satellite:
         return positions
 
     def get_observer_azimuth_elevation(self, observer_latitude,
-                          observer_longitude, observer_altitude, date=None):
+                            observer_longitude, observer_altitude, date=None,
+                            north_offset=0.0):
         '''Returns the satellite directions (azimuth, elevation) for the given
         observer's positions'''
 
@@ -106,19 +107,20 @@ class Satellite:
         aer_position = pm.eci2aer(eci_position, observer_latitude,
                                   observer_longitude, observer_altitude, date)
 
-        az = aer_position[0][0]
+        az = aer_position[0][0] + north_offset
         el = aer_position[1][0]
         return az, el
 
     def propagate_az_el_step(self, observer_lat, observer_lon,
                              observer_alt,
-                             start=datetime.now(tz=timezone.utc), count=50,
-                             step=1):
+                             start=datetime.now(tz=timezone.utc),
+                             north_offset=0.0, count=50, step=1):
         '''Propagates satellite's for count points, where each point is
         propagated step seconds apart, starting at time date'''
         dates = [start + timedelta(seconds=step * i) for i in range(count)]
         az_el = [self.get_observer_azimuth_elevation(observer_lat,
-                 observer_lon, observer_alt, date=date) for date in dates]
+                 observer_lon, observer_alt, date=date,
+                 north_offset=north_offset) for date in dates]
         return az_el, dates
 
 

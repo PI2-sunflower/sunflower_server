@@ -6,7 +6,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from satellite.satellite import Satellite
-from satellite.tle_getter import get_and_update_tle
+from satellite.tle_getter import get_and_update_tle, \
+     get_and_update_tle_from_disk
 from tracker.fetcher import SatelliteProxy, SatellitePosition, TargetParams, \
     Tracker
 
@@ -130,8 +131,8 @@ def get_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
                      tzinfo=timezone.utc)
 
     satellite = Satellite(*tle)
-    az_el, dates = satellite.propagate_az_el_step(
-        observer_lat, observer_lon, observer_alt, start, count, step)
+    az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon,
+                                observer_alt, start, count=count, step=step)
 
     az_el_dates = []
     for i, azimuth_elevation in enumerate(az_el):
@@ -154,3 +155,34 @@ def get_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
         'positions': az_el_dates,
     }
     return JsonResponse(response)
+
+def get_stepped_azimuth_elevation_offset(request, norad, observer_lat,
+         observer_lon, observer_alt, north_offset, second, day, month, year,
+         count, step):
+
+    tle = get_and_update_tle(norad)
+    start = datetime(second=second, day=day, month=month, year=year,
+                     tzinfo=timezone.utc)
+
+    satellite = Satellite(*tle)
+    az_el, dates = satellite.propagate_az_el_step(
+        observer_lat, observer_lon, observer_alt, north_offset=north_offset,
+        start=start, count=count, step=step)
+
+    az, el = list(zip(*az_el))
+
+    response = {
+        'norad_id': norad,
+        'observer_latitude': observer_lat,
+        'observer_longitude': observer_lon,
+        'observer_altitude': observer_alt,
+        'north_offset': north_offset,
+        'count': count,
+        'step': step,
+        'tle': tle,
+        'azimuth': az,
+        'elevation': el,
+        'dates': dates,
+    }
+    return JsonResponse(response)
+

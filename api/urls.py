@@ -27,5 +27,10 @@ urlpatterns += [
          '<xx:day>/<xx:hour>/<xx:minute>/<xx:second>/<int:count>/<int:step>',
          views.get_stepped_azimuth_elevation,
          name='track_azimuth_elevation'),
-#def propagate(self, year, month=1, day=1, hour=0, minute=0, second=0.0):
+
+    path('track_azimuth_elevation_north_offset/<int:norad>/'
+         '<float:observer_lat>/<float:observer_lon>/<float:observer_alt>/'
+         '<float:north_offset>/<xx:second>/<xx:day>/<xx:month>/<yyyy:year>/'
+         '<int:count>/<int:step>', views.get_stepped_azimuth_elevation_offset,
+         name='positions_observer_offset'),
 ]
