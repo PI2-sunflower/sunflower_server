@@ -179,6 +179,7 @@ def set_arm_position(request):
     longitude = data.get("longitude")
     altitude = data.get("altitude")
     magnetometer = data.get("magnetometer")
+    engine_speed = data.get("engine_speed")
 
     position = arm_position_instance()
 
@@ -190,6 +191,8 @@ def set_arm_position(request):
         position.altitude = altitude
     if magnetometer is not None:
         position.magnetometer = magnetometer
+    if engine_speed is not None:
+        position.engine_speed = engine_speed
 
     position.save()
 

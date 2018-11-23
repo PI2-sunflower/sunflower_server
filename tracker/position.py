@@ -23,4 +23,5 @@ def serialize_arm_position(position):
         "longitude": position.longitude,
         "altitude": position.altitude,
         "magnetometer": position.magnetometer,
+        "engine_speed": position.engine_speed,
     }
