@@ -1,3 +1,8 @@
 from django.db import models
 
-# Create your models here.
+
+class ArmPosition(models.Model):
+    latitude = models.FloatField(default=0.0, blank=False, null=False)
+    longitude = models.FloatField(default=0.0, blank=False, null=False)
+    altitude = models.FloatField(default=0.0, blank=False, null=False)
+    magnetometer = models.FloatField(default=0.0, blank=False, null=False)
