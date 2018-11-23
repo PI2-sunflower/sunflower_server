@@ -7,8 +7,11 @@ from api.models import Tle
 from tracker.fetcher import TargetParams, Tracker
 from satellite.tle import TLE
 
-TLE_UPDATE_TIME = 30 # Unit: seconds
+TLE_UPDATE_TIME = 60 * 60 # Unit: seconds
 
+READ_MODE = 'rb'
+TLE_CACHE_FILEPATH = 'tle_cache.pickle'
+DOWNLOADED_AT_KEY = 'downloaded_at'
 
 def fetch_new_tle(norad):
     tracker = Tracker(satid=norad)
@@ -17,12 +20,14 @@ def fetch_new_tle(norad):
     tle_wrapper = TLE(*tle)
     return tle_wrapper
 
+def get_tle_cache_from_disk():
+    tle_cache_file = open(TLE_CACHE_FILEPATH, READ_MODE)
+    tle_cache = pickle.load(tle_cache_file)
+    return tle_cache
+
 def get_and_update_tle_from_disk(norad_id):
     assert(isinstance(norad_id, int))
 
-    TLE_CACHE_FILEPATH = 'tle_cache.pickle'
-    DOWNLOADED_AT_KEY = 'downloaded_at'
-    READ_MODE = 'rb'
     WRITE_MODE = 'wb'
     LINE1, LINE2 = 'line1', 'line2'
 
@@ -32,8 +37,7 @@ def get_and_update_tle_from_disk(norad_id):
     tle_value = None
 
     try:
-        tle_cache_file = open(TLE_CACHE_FILEPATH, READ_MODE)
-        tle_cache = pickle.load(tle_cache_file)
+        tle_cache = get_tle_cache_from_disk()
         if norad_id in tle_cache:
             tle_value = tle_cache[norad_id]
             time_delta = now - tle_value[DOWNLOADED_AT_KEY]

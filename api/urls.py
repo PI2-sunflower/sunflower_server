@@ -28,9 +28,11 @@ urlpatterns += [
          views.get_stepped_azimuth_elevation,
          name='track_azimuth_elevation'),
 
-    path('track_azimuth_elevation_north_offset/<int:norad>/'
-         '<float:observer_lat>/<float:observer_lon>/<float:observer_alt>/'
-         '<float:north_offset>/<xx:second>/<xx:day>/<xx:month>/<yyyy:year>/'
+    path('track_azimuth_elevation_offset/<int:norad>/<float:observer_lat>/' \
+         '<float:observer_lon>/<float:observer_alt>/<float:north_offset>/'
+         '<yyyy:year>/<xx:month>/<xx:day>/<xx:hour>/<xx:minute>/<xx:second>/'
          '<int:count>/<int:step>', views.get_stepped_azimuth_elevation_offset,
-         name='positions_observer_offset'),
+         name='track_azimuth_elevation_offset'),
+
+    path('tle_cache_file', views.get_tle_cache_file, name='tle_cache_file'),
 ]

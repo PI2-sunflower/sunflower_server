@@ -48,7 +48,7 @@ class Satellite:
         return vectors
 
 
-    def propagate_positions_step(self, start=None, count=20, step=1):
+    def propagate_positions_step(self, start, count, step):
         '''Uses self.propagate to propaate satellite in the 'count' points
         starting at 'start', where which point is separated by 'step'
         seconds'''
@@ -68,7 +68,7 @@ class Satellite:
         positions = tuple(position_time(self, at) for at in dates)
         return positions
 
-    def propagate_positions(self, start, end, count=20):
+    def propagate_positions(self, start, end, count):
         '''Uses self.propagate to propaate satellite in the 'count' points
         starting at 'start', ending at 'ending' '''
 
@@ -95,26 +95,21 @@ class Satellite:
         return positions
 
     def get_observer_azimuth_elevation(self, observer_latitude,
-                            observer_longitude, observer_altitude, date=None,
+                            observer_longitude, observer_altitude, date,
                             north_offset=0.0):
         '''Returns the satellite directions (azimuth, elevation) for the given
         observer's positions'''
-
-        if date is None:
-            date = datetime.now(timezone.utc)
 
         eci_position = self.propagate(date)[0]
         aer_position = pm.eci2aer(eci_position, observer_latitude,
                                   observer_longitude, observer_altitude, date)
 
-        az = aer_position[0][0] + north_offset
+        az = (aer_position[0][0] - north_offset) % 360.0
         el = aer_position[1][0]
         return az, el
 
-    def propagate_az_el_step(self, observer_lat, observer_lon,
-                             observer_alt,
-                             start=datetime.now(tz=timezone.utc),
-                             north_offset=0.0, count=50, step=1):
+    def propagate_az_el_step(self, observer_lat, observer_lon, observer_alt,
+                             start, count, step, north_offset=0.0):
         '''Propagates satellite's for count points, where each point is
         propagated step seconds apart, starting at time date'''
         dates = [start + timedelta(seconds=step * i) for i in range(count)]

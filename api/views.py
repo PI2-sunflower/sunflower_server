@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from satellite.satellite import Satellite
 from satellite.tle_getter import get_and_update_tle, \
-     get_and_update_tle_from_disk
+     get_and_update_tle_from_disk, get_tle_cache_from_disk
 from tracker.fetcher import SatelliteProxy, SatellitePosition, TargetParams, \
     Tracker
 
@@ -86,7 +86,8 @@ def mqtt_dispatch(request):
 
 def get_stepped_positions(request, norad, year, month, day, hour, minute,
                           second, count, step):
-    tle = get_and_update_tle(norad)
+
+    tle = get_and_update_tle_from_disk(norad)
     start = datetime(year=year,
                      month=month,
                      day=day,
@@ -121,7 +122,8 @@ def get_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
                                   observer_alt, year, month, day, hour, minute,
                                   second, count, step):
 
-    tle = get_and_update_tle(norad)
+    tle = get_and_update_tle_from_disk(norad)
+
     start = datetime(year=year,
                      month=month,
                      day=day,
@@ -132,7 +134,7 @@ def get_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
 
     satellite = Satellite(*tle)
     az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon,
-                                observer_alt, start, count=count, step=step)
+                                observer_alt, start=start, count=count, step=step)
 
     az_el_dates = []
     for i, azimuth_elevation in enumerate(az_el):
@@ -157,19 +159,32 @@ def get_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
     return JsonResponse(response)
 
 def get_stepped_azimuth_elevation_offset(request, norad, observer_lat,
-         observer_lon, observer_alt, north_offset, second, day, month, year,
-         count, step):
+             observer_lon, observer_alt, north_offset, year, month, day, hour,
+             minute, second, count, step):
 
-    tle = get_and_update_tle(norad)
-    start = datetime(second=second, day=day, month=month, year=year,
+    tle = get_and_update_tle_from_disk(norad)
+    start = datetime(year=year,
+                     month=month,
+                     day=day,
+                     hour=hour,
+                     minute=minute,
+                     second=second,
                      tzinfo=timezone.utc)
 
     satellite = Satellite(*tle)
-    az_el, dates = satellite.propagate_az_el_step(
-        observer_lat, observer_lon, observer_alt, north_offset=north_offset,
-        start=start, count=count, step=step)
+    az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon,
+              observer_alt, start=start, count=count, step=step,
+              north_offset=north_offset)
 
-    az, el = list(zip(*az_el))
+    az_el_dates = []
+    for i, azimuth_elevation in enumerate(az_el):
+        azimuth, elevation = azimuth_elevation
+        az_el_date = {
+            'azimuth': azimuth,
+            'elevation': elevation,
+            'date': dates[i],
+        }
+        az_el_dates.append(az_el_date)
 
     response = {
         'norad_id': norad,
@@ -180,9 +195,17 @@ def get_stepped_azimuth_elevation_offset(request, norad, observer_lat,
         'count': count,
         'step': step,
         'tle': tle,
-        'azimuth': az,
-        'elevation': el,
-        'dates': dates,
+        'positions': az_el_dates,
     }
     return JsonResponse(response)
 
+def get_tle_cache_file(request):
+    response = None
+    try:
+        tle_cache = get_tle_cache_from_disk()
+        response = tle_cache
+    except FileNotFoundError:
+        response = {
+            'error': 'TLE cache file not found on disk'
+        }
+    return JsonResponse(response)
