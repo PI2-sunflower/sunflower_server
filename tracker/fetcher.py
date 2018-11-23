@@ -140,8 +140,7 @@ class SatelliteTrackerState(Satellite):
 
     def _track_position(self):
         def ping_antenna():
-            tle = tle_getter.fetch_new_tle(self.position.satid)
-            tle = tle.tle
+            tle = tle_getter.get_and_update_tle_from_disk(self.position.satid)
 
             user_position = get_user_position()
             satellite = SGP4Sat(*tle)
