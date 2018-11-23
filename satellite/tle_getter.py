@@ -9,7 +9,6 @@ from satellite.tle import TLE
 
 TLE_UPDATE_TIME = 60 * 60 # Unit: seconds
 
-READ_MODE = 'rb'
 TLE_CACHE_FILEPATH = 'tle_cache.pickle'
 DOWNLOADED_AT_KEY = 'downloaded_at'
 
@@ -21,14 +20,19 @@ def fetch_new_tle(norad):
     return tle_wrapper
 
 def get_tle_cache_from_disk():
-    tle_cache_file = open(TLE_CACHE_FILEPATH, READ_MODE)
-    tle_cache = pickle.load(tle_cache_file)
-    return tle_cache
+    READ_MODE = 'rb'
+    with open(TLE_CACHE_FILEPATH, READ_MODE) as tle_cache_file:
+        tle_cache = pickle.load(tle_cache_file)
+        return tle_cache
+
+def save_tle_cache_in_disk(tle_cache):
+    WRITE_MODE = 'wb'
+    with open(TLE_CACHE_FILEPATH, WRITE_MODE) as tle_cache_file:
+        pickle.dump(tle_cache, tle_cache_file)
 
 def get_and_update_tle_from_disk(norad_id):
     assert(isinstance(norad_id, int))
 
-    WRITE_MODE = 'wb'
     LINE1, LINE2 = 'line1', 'line2'
 
     now = datetime.now(tz=timezone.utc)
@@ -57,8 +61,7 @@ def get_and_update_tle_from_disk(norad_id):
         }
 
         tle_cache[norad_id] = tle_value
-        tle_cache_file = open(TLE_CACHE_FILEPATH, WRITE_MODE)
-        pickle.dump(tle_cache, tle_cache_file)
+        save_tle_cache_in_disk(tle_cache)
 
     return tle_value[LINE1], tle_value[LINE2]
 
