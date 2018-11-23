@@ -6,7 +6,7 @@ from django.http import HttpResponse
 
 from plotter import plotter
 from satellite.satellite import Satellite
-from satellite.tle_getter import get_and_update_tle
+from satellite.tle_getter import get_and_update_tle_from_disk
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import matplotlib.pyplot as plt
 
@@ -16,7 +16,7 @@ import io
 def plot_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
                                    observer_alt, year, month, day, hour,
                                    minute, second, count, step):
-    tle = get_and_update_tle(norad)
+    tle = get_and_update_tle_from_disk(norad)
     start = datetime(year=year,
                      month=month,
                      day=day,
@@ -26,7 +26,8 @@ def plot_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
                      tzinfo=timezone.utc)
 
     satellite = Satellite(*tle)
-    az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon, observer_alt, start, count, step)
+    az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon,
+    observer_alt, start=start, count=count, step=step)
     az, el = list(zip(*az_el))
 
     figure = plotter.plot_az_el(az, el)
