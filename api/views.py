@@ -10,7 +10,7 @@ from satellite.tle_getter import get_and_update_tle
 from tracker.fetcher import SatelliteProxy, SatellitePosition, TargetParams, Tracker
 
 # get_client, start_connection, connection_topic
-from .mqtt_broker import AnntenaCommand
+from .mqtt_broker import AnntenaCommand, CommandHistory
 
 from tracker.position import serialize_arm_position, arm_position_instance
 
@@ -46,6 +46,11 @@ def get_position(position: SatellitePosition):
 
 def get_commands(request):
     return JsonResponse(VALID_COMMANDS, safe=False)
+
+def get_command_history(request):
+    history = CommandHistory().history
+
+    return JsonResponse(history, safe=False)
 
 
 def get_satellite_data(request):
