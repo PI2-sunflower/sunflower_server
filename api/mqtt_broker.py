@@ -4,6 +4,7 @@ import paho.mqtt.client as mqtt
 from time import sleep
 from typing import Tuple
 from threading import Thread
+from collections import deque
 
 from sunflower_ll.translator import Translator, validate_axis
 
@@ -21,7 +22,7 @@ flag_connected = 0
 def on_connect(client, userdata, flags, rc):
     global flag_connected
 
-    #print("Connected with result code " + str(rc))
+    # print("Connected with result code " + str(rc))
     flag_connected = 1
 
 
@@ -49,6 +50,35 @@ def mqtt_start_connection():
 # process.start()
 
 
+class CommandHistory:
+    instance = None
+    MAX_HISTORY = 25
+
+    class __CommandHistory:
+        __slots__ = ("_history",)
+
+        def __init__(self):
+            self._history = deque()
+
+        def add_to_history(self, topic, command):
+            mqtt_code = {"topic": topic, "command": command}
+
+            self._history.appendleft(mqtt_code)
+
+            if len(self._history) > CommandHistory.MAX_HISTORY:
+                self._history.pop()
+
+        @property
+        def history(self):
+            return list(self._history)
+
+    def __new__(cls):
+        if not CommandHistory.instance:
+            CommandHistory.instance = CommandHistory.__CommandHistory()
+
+        return CommandHistory.instance
+
+
 class AnntenaCommand:
     __slots__ = ("command", "tr", "mqtt_client", "params")
 
@@ -72,16 +102,23 @@ class AnntenaCommand:
         else:
             output = self._get_broker_output(self.command)
 
+        command_history = CommandHistory()
         try:
             # self.mqtt_client.connect(MQTT_HOST, 1883, 60)
             global mqtt_client
+
             print("SENT TO BROKER")
             print("TOPIC: {}\n COMMAND: {}".format(output["topic"], output["command"]))
+
+            command_history.add_to_history(output["topic"], output["command"])
+
             mqtt_client.publish(output["topic"], output["command"])
             # mqtt_client.disconnect()
 
             return (True, "")
         except Exception as e:
+            command_history.add_to_history("FAIL", "Could not connect to broker")
+
             return (False, "Could not connect to broker")
 
     def _get_broker_output(self, command):

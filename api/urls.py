@@ -11,6 +11,7 @@ register_converter(converters.FloarConverter, "float")
 
 urlpatterns = [
     path("commands", views.get_commands, name="get_commands"),
+    path("command-history", views.get_command_history, name="get_command_history"),
     path("track-data", views.get_satellite_data, name="get_satellite_data"),
     path("track/<int:satid>", views.track_satellite, name="track_satellite"),
     path("stop-track", views.stop_tracking, name="stop_tracking"),
