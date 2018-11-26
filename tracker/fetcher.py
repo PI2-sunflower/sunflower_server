@@ -4,10 +4,9 @@ import abc
 from urllib import request
 
 from threading import Thread
-from time import sleep
+from time import sleep, timezone
 from enum import IntEnum
 from datetime import datetime, timedelta
-from django.utils import timezone
 
 from satellite.satellite import Satellite as SGP4Sat
 from satellite import tle_getter
@@ -16,7 +15,7 @@ from api.mqtt_broker import AnntenaCommand
 
 from tracker.position import arm_position_instance
 
-API_KEY = os.environ.get('N2YO_API_KEY', "blank")
+API_KEY = os.environ.get("N2YO_API_KEY", "blank")
 BASE_URI = "https://www.n2yo.com/rest/v1"
 ID = 25544
 MY_LAT = -15.77972
@@ -36,13 +35,14 @@ def get_position():
         "altitude": position.altitude,
     }
 
+
 class TargetParams(IntEnum):
     TLE = 1
     POSITIONS = 2
 
 
 class Tracker:
-    __slots__ = ('satid',)
+    __slots__ = ("satid",)
 
     def __init__(self, satid: int):
         self.satid = satid
@@ -53,14 +53,14 @@ class Tracker:
         elif target == TargetParams.POSITIONS:
             request_uri = self._positions_uri
         else:
-            raise ValueError('Invalid Target')
+            raise ValueError("Invalid Target")
 
         response = request.urlopen(request_uri)
 
         content = response.read()
 
         if type(content) == bytes:
-            content = content.decode('utf-8')
+            content = content.decode("utf-8")
 
         data = json.loads(content)
 
@@ -68,9 +68,16 @@ class Tracker:
 
     @property
     def _positions_uri(self):
+        arm_position = get_position()
+
         return "{}/satellite/positions/{}/{}/{}/{}/{}/&apiKey={}".format(
-            BASE_URI, self.satid, MY_LAT, MY_LONG, MY_ALT,
-            POSITIONS_COUNT, API_KEY
+            BASE_URI,
+            self.satid,
+            arm_position["latitude"],
+            arm_position["longitude"],
+            arm_position["altitude"],
+            POSITIONS_COUNT,
+            API_KEY,
         )
 
     @property
@@ -79,14 +86,11 @@ class Tracker:
 
 
 class SatellitePosition:
-    __slots__ = ('satid', 'info', 'positions', 'positions_validation', 'tle',)
+    __slots__ = ("satid", "info", "positions", "positions_validation", "tle")
 
-    def __init__(self,
-                 satid=None,
-                 info=None,
-                 positions=None,
-                 positions_validation=None,
-                 tle=None):
+    def __init__(
+        self, satid=None, info=None, positions=None, positions_validation=None, tle=None
+    ):
 
         self.satid = satid
         self.info = info
@@ -152,13 +156,12 @@ class SatelliteTrackerState(Satellite):
 
             while self._keep_tracking:
                 now = datetime.now()
-                # now.tzinfo = timezone.utc
 
                 (az, el) = satellite.get_observer_azimuth_elevation(
                     arm_position["latitude"],
                     arm_position["longitude"],
                     arm_position["altitude"],
-                    now
+                    now,
                 )
 
                 action = {"angle_1": az, "angle_2": el, "angle_3": 0}
@@ -166,7 +169,6 @@ class SatelliteTrackerState(Satellite):
                 command.execute()
 
                 sleep(1)
-
 
         def track_thread():
             tracker = Tracker(self.position.satid)
@@ -188,9 +190,9 @@ class SatelliteTrackerState(Satellite):
                         data = tracker.fetch(TargetParams.POSITIONS)
                         sleep_time = 60
 
-                    info = data.get('info', None)
-                    positions = data.get('positions', None)
-                    tle = data.get('tle', None)
+                    info = data.get("info", None)
+                    positions = data.get("positions", None)
+                    tle = data.get("tle", None)
 
                     if info is not None:
                         self.position.info = info
@@ -199,10 +201,7 @@ class SatelliteTrackerState(Satellite):
                         now = datetime.now()
                         on_60_seconds = now + timedelta(seconds=60)
 
-                        positions_validation = {
-                            'from': now,
-                            'to': on_60_seconds
-                        }
+                        positions_validation = {"from": now, "to": on_60_seconds}
 
                         self.position.positions = positions
                         self.position.positions_validation = positions_validation
