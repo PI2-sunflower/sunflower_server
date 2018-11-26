@@ -95,14 +95,15 @@ class AnntenaCommand:
             )
 
             if invalid_angles == 1:
-                return (False, "Invalid angles")
+                message = "Invalid angles"
+                self.register_fail(message)
+                return (False, message)
 
             self.tr.set_axis_angles(self.params)
             output = self.tr.move_axis()
         else:
             output = self._get_broker_output(self.command)
 
-        command_history = CommandHistory()
         try:
             # self.mqtt_client.connect(MQTT_HOST, 1883, 60)
             global mqtt_client
@@ -110,14 +111,14 @@ class AnntenaCommand:
             print("SENT TO BROKER")
             print("TOPIC: {}\n COMMAND: {}".format(output["topic"], output["command"]))
 
-            command_history.add_to_history(output["topic"], output["command"])
+            CommandHistory().add_to_history(output["topic"], output["command"])
 
             mqtt_client.publish(output["topic"], output["command"])
             # mqtt_client.disconnect()
 
             return (True, "")
         except Exception as e:
-            command_history.add_to_history("FAIL", "Could not connect to broker")
+            self.register_fail("Could not connect to broker")
 
             return (False, "Could not connect to broker")
 
@@ -129,3 +130,6 @@ class AnntenaCommand:
             broker_output = action()
 
         return broker_output
+
+    def register_fail(self, message):
+        CommandHistory().add_to_history("FAIL", message)
