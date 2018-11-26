@@ -4,7 +4,7 @@ import abc
 from urllib import request
 
 from threading import Thread
-from time import sleep
+from time import sleep, timezone
 from enum import IntEnum
 from datetime import datetime, timedelta
 
@@ -13,7 +13,9 @@ from satellite import tle_getter
 
 from api.mqtt_broker import AnntenaCommand
 
-API_KEY = os.environ.get('N2YO_API_KEY', "blank")
+from tracker.position import arm_position_instance
+
+API_KEY = os.environ.get("N2YO_API_KEY", "blank")
 BASE_URI = "https://www.n2yo.com/rest/v1"
 ID = 25544
 MY_LAT = -15.77972
@@ -24,12 +26,15 @@ POSITIONS_COUNT = 60
 # SATELLITE_URI = f"{BASE_URI}/satellite/positions/{ID}/{MY_LAT}/{MY_LONG}/{MY_ALT}/1/&apiKey={API_KEY}"
 
 
-def get_user_position():
+def get_position():
+    position = arm_position_instance()
+
     return {
-        "latitude": MY_LAT,
-        "longitude": MY_LONG,
-        "altitude": MY_ALT,
+        "latitude": position.latitude,
+        "longitude": position.longitude,
+        "altitude": position.altitude,
     }
+
 
 class TargetParams(IntEnum):
     TLE = 1
@@ -37,7 +42,7 @@ class TargetParams(IntEnum):
 
 
 class Tracker:
-    __slots__ = ('satid',)
+    __slots__ = ("satid",)
 
     def __init__(self, satid: int):
         self.satid = satid
@@ -48,14 +53,14 @@ class Tracker:
         elif target == TargetParams.POSITIONS:
             request_uri = self._positions_uri
         else:
-            raise ValueError('Invalid Target')
+            raise ValueError("Invalid Target")
 
         response = request.urlopen(request_uri)
 
         content = response.read()
 
         if type(content) == bytes:
-            content = content.decode('utf-8')
+            content = content.decode("utf-8")
 
         data = json.loads(content)
 
@@ -63,9 +68,16 @@ class Tracker:
 
     @property
     def _positions_uri(self):
+        arm_position = get_position()
+
         return "{}/satellite/positions/{}/{}/{}/{}/{}/&apiKey={}".format(
-            BASE_URI, self.satid, MY_LAT, MY_LONG, MY_ALT,
-            POSITIONS_COUNT, API_KEY
+            BASE_URI,
+            self.satid,
+            arm_position["latitude"],
+            arm_position["longitude"],
+            arm_position["altitude"],
+            POSITIONS_COUNT,
+            API_KEY,
         )
 
     @property
@@ -74,14 +86,11 @@ class Tracker:
 
 
 class SatellitePosition:
-    __slots__ = ('satid', 'info', 'positions', 'positions_validation', 'tle',)
+    __slots__ = ("satid", "info", "positions", "positions_validation", "tle")
 
-    def __init__(self,
-                 satid=None,
-                 info=None,
-                 positions=None,
-                 positions_validation=None,
-                 tle=None):
+    def __init__(
+        self, satid=None, info=None, positions=None, positions_validation=None, tle=None
+    ):
 
         self.satid = satid
         self.info = info
@@ -142,23 +151,24 @@ class SatelliteTrackerState(Satellite):
         def ping_antenna():
             tle = tle_getter.get_and_update_tle_from_disk(self.position.satid)
 
-            user_position = get_user_position()
+            arm_position = get_position()
             satellite = SGP4Sat(*tle)
 
             while self._keep_tracking:
+                now = datetime.now()
+
                 (az, el) = satellite.get_observer_azimuth_elevation(
-                    user_position["latitude"],
-                    user_position["longitude"],
-                    user_position["altitude"],
+                    arm_position["latitude"],
+                    arm_position["longitude"],
+                    arm_position["altitude"],
+                    now,
                 )
 
-                command = AnntenaCommand(
-                    "move_axis", {"angle_1": az, "angle_2": el, "angle_3": 0}
-                )
+                action = {"angle_1": az, "angle_2": el, "angle_3": 0}
+                command = AnntenaCommand("move_axis", action)
                 command.execute()
 
                 sleep(1)
-
 
         def track_thread():
             tracker = Tracker(self.position.satid)
@@ -180,9 +190,9 @@ class SatelliteTrackerState(Satellite):
                         data = tracker.fetch(TargetParams.POSITIONS)
                         sleep_time = 60
 
-                    info = data.get('info', None)
-                    positions = data.get('positions', None)
-                    tle = data.get('tle', None)
+                    info = data.get("info", None)
+                    positions = data.get("positions", None)
+                    tle = data.get("tle", None)
 
                     if info is not None:
                         self.position.info = info
@@ -191,10 +201,7 @@ class SatelliteTrackerState(Satellite):
                         now = datetime.now()
                         on_60_seconds = now + timedelta(seconds=60)
 
-                        positions_validation = {
-                            'from': now,
-                            'to': on_60_seconds
-                        }
+                        positions_validation = {"from": now, "to": on_60_seconds}
 
                         self.position.positions = positions
                         self.position.positions_validation = positions_validation

@@ -6,13 +6,13 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from satellite.satellite import Satellite
-from satellite.tle_getter import get_and_update_tle, \
-     get_and_update_tle_from_disk, get_tle_cache_from_disk
-from tracker.fetcher import SatelliteProxy, SatellitePosition, TargetParams, \
-    Tracker
+from satellite.tle_getter import get_and_update_tle
+from tracker.fetcher import SatelliteProxy, SatellitePosition, TargetParams, Tracker
 
 # get_client, start_connection, connection_topic
 from .mqtt_broker import AnntenaCommand
+
+from tracker.position import serialize_arm_position, arm_position_instance
 
 # space_station = SatellitePosition()
 # space_station.satid = 25544
@@ -22,8 +22,12 @@ proxy = SatelliteProxy()
 # start_connection()
 
 VALID_COMMANDS = [
-    "go_up", "go_down", "stop_up_down",
-    "expand", "retract", "stop_expand_retract",
+    "go_up",
+    "go_down",
+    "stop_up_down",
+    "expand",
+    "retract",
+    "stop_expand_retract",
     "move_axis",
 ]
 
@@ -70,8 +74,8 @@ def stop_tracking(request):
 def mqtt_dispatch(request):
     data = json.loads(request.body)
 
-    command = data.get('command')
-    params = data.get('params')
+    command = data.get("command")
+    params = data.get("params")
     success = False
     message = ""
 
@@ -84,128 +88,118 @@ def mqtt_dispatch(request):
     return JsonResponse({"dispatch": success, "message": message})
 
 
-def get_stepped_positions(request, norad, year, month, day, hour, minute,
-                          second, count, step):
-
-    tle = get_and_update_tle_from_disk(norad)
-    start = datetime(year=year,
-                     month=month,
-                     day=day,
-                     hour=hour,
-                     minute=minute,
-                     second=second,
-                     tzinfo=timezone.utc)
+def get_stepped_positions(
+    request, norad, year, month, day, hour, minute, second, count, step
+):
+    tle = get_and_update_tle(norad)
+    start = datetime(
+        year=year,
+        month=month,
+        day=day,
+        hour=hour,
+        minute=minute,
+        second=second,
+        tzinfo=timezone.utc,
+    )
 
     satellite = Satellite(*tle)
-    positions_dates = satellite.propagate_positions_step(start=start,
-                      count=count, step=step)
+    positions_dates = satellite.propagate_positions_step(
+        start=start, count=count, step=step
+    )
     positions = []
     for xyz, date in positions_dates:
         x, y, z = xyz
-        positions.append({
-            'x': x,
-            'y': y,
-            'z': z,
-            'date': date,
-        })
+        positions.append({"x": x, "y": y, "z": z, "date": date})
     response = {
-        'norad_id': norad,
-        'count': count,
-        'step': step,
-        'tle': tle,
-        'positions': positions,
+        "norad_id": norad,
+        "count": count,
+        "step": step,
+        "tle": tle,
+        "positions": positions,
     }
     return JsonResponse(response)
 
 
-def get_stepped_azimuth_elevation(request, norad, observer_lat, observer_lon,
-                                  observer_alt, year, month, day, hour, minute,
-                                  second, count, step):
+def get_stepped_azimuth_elevation(
+    request,
+    norad,
+    observer_lat,
+    observer_lon,
+    observer_alt,
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    second,
+    count,
+    step,
+):
 
-    tle = get_and_update_tle_from_disk(norad)
-
-    start = datetime(year=year,
-                     month=month,
-                     day=day,
-                     hour=hour,
-                     minute=minute,
-                     second=second,
-                     tzinfo=timezone.utc)
+    tle = get_and_update_tle(norad)
+    start = datetime(
+        year=year,
+        month=month,
+        day=day,
+        hour=hour,
+        minute=minute,
+        second=second,
+        tzinfo=timezone.utc,
+    )
 
     satellite = Satellite(*tle)
-    az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon,
-                                observer_alt, start=start, count=count, step=step)
+    az_el, dates = satellite.propagate_az_el_step(
+        observer_lat, observer_lon, observer_alt, start, count, step
+    )
 
     az_el_dates = []
     for i, azimuth_elevation in enumerate(az_el):
         azimuth, elevation = azimuth_elevation
-        az_el_date = {
-            'azimuth': azimuth,
-            'elevation': elevation,
-            'date': dates[i],
-        }
+        az_el_date = {"azimuth": azimuth, "elevation": elevation, "date": dates[i]}
         az_el_dates.append(az_el_date)
 
     response = {
-        'norad_id': norad,
-        'observer_latitude': observer_lat,
-        'observer_longitude': observer_lon,
-        'observer_altitude': observer_alt,
-        'count': count,
-        'step': step,
-        'tle': tle,
-        'positions': az_el_dates,
+        "norad_id": norad,
+        "observer_latitude": observer_lat,
+        "observer_longitude": observer_lon,
+        "observer_altitude": observer_alt,
+        "count": count,
+        "step": step,
+        "tle": tle,
+        "positions": az_el_dates,
     }
     return JsonResponse(response)
 
-def get_stepped_azimuth_elevation_offset(request, norad, observer_lat,
-             observer_lon, observer_alt, north_offset, year, month, day, hour,
-             minute, second, count, step):
 
-    tle = get_and_update_tle_from_disk(norad)
-    start = datetime(year=year,
-                     month=month,
-                     day=day,
-                     hour=hour,
-                     minute=minute,
-                     second=second,
-                     tzinfo=timezone.utc)
+@csrf_exempt
+def set_arm_position(request):
+    data = json.loads(request.body)
 
-    satellite = Satellite(*tle)
-    az_el, dates = satellite.propagate_az_el_step(observer_lat, observer_lon,
-              observer_alt, start=start, count=count, step=step,
-              north_offset=north_offset)
+    latitude = data.get("latitude")
+    longitude = data.get("longitude")
+    altitude = data.get("altitude")
+    magnetometer = data.get("magnetometer")
+    engine_speed = data.get("engine_speed")
 
-    az_el_dates = []
-    for i, azimuth_elevation in enumerate(az_el):
-        azimuth, elevation = azimuth_elevation
-        az_el_date = {
-            'azimuth': azimuth,
-            'elevation': elevation,
-            'date': dates[i],
-        }
-        az_el_dates.append(az_el_date)
+    position = arm_position_instance()
 
-    response = {
-        'norad_id': norad,
-        'observer_latitude': observer_lat,
-        'observer_longitude': observer_lon,
-        'observer_altitude': observer_alt,
-        'north_offset': north_offset,
-        'count': count,
-        'step': step,
-        'tle': tle,
-        'positions': az_el_dates,
-    }
-    return JsonResponse(response)
+    if latitude is not None:
+        position.latitude = latitude
+    if longitude is not None:
+        position.longitude = longitude
+    if altitude is not None:
+        position.altitude = altitude
+    if magnetometer is not None:
+        position.magnetometer = magnetometer
+    if engine_speed is not None:
+        position.engine_speed = engine_speed
 
-def get_tle_cache_file(request):
-    response = None
-    try:
-        tle_cache = get_tle_cache_from_disk()
-        response = tle_cache
-    except FileNotFoundError:
-        response = {
-            'error': 'TLE cache file not found on disk'
-        }
-    return JsonResponse(response)
+    position.save()
+
+    return JsonResponse({"updates": "done"})
+
+
+def get_arm_position(request):
+    position = arm_position_instance()
+
+    return JsonResponse(serialize_arm_position(position))

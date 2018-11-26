@@ -33,8 +33,8 @@ class Satellite:
         if not isinstance(date, datetime):
             raise ValueError('date should be a datetime object')
 
-        if not (date.tzinfo == timezone.utc):
-            raise ValueError('Time must be in UTC')
+        #if not (date.tzinfo == timezone.utc):
+        #    raise ValueError('Time must be in UTC')
 
         date_at = date.year, date.month, date.day, date.hour, date.minute, \
                   date.second + (date.microsecond / 1000000.0)
