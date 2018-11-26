@@ -6,7 +6,7 @@ from typing import Tuple
 from threading import Thread
 from collections import deque
 
-from sunflower_ll.translator import Translator, validate_axis
+from sunflower_ll.translator import Translator
 
 # 10.0.0.222
 MQTT_HOST = "localhost"  # os.environ.get('MQTT_HOST', "localhost")
@@ -90,7 +90,7 @@ class AnntenaCommand:
 
     def execute(self) -> Tuple[bool, str]:
         if self.command == "move_axis":
-            invalid_angles = validate_axis(
+            invalid_angles = self.tr.validate_axis(
                 {**{"angle_1": 0, "angle_2": 0, "angle_3": 0}, **self.params}
             )
 
@@ -100,7 +100,7 @@ class AnntenaCommand:
                 return (False, message)
 
             self.tr.set_axis_angles(self.params)
-            output = self.tr.move_axis()
+            (err, output) = self.tr.move_axis()
         else:
             output = self._get_broker_output(self.command)
 
@@ -118,9 +118,10 @@ class AnntenaCommand:
 
             return (True, "")
         except Exception as e:
-            self.register_fail("Could not connect to broker")
+            message = "Could not send command to broker"
+            self.register_fail(message)
 
-            return (False, "Could not connect to broker")
+            return (False, message)
 
     def _get_broker_output(self, command):
         action = getattr(self.tr, command, None)
