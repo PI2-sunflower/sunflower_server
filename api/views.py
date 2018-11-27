@@ -13,6 +13,7 @@ from tracker.fetcher import SatelliteProxy, SatellitePosition, TargetParams, Tra
 from .mqtt_broker import AnntenaCommand, CommandHistory
 
 from tracker.position import serialize_arm_position, arm_position_instance
+from tracker.data import serialize_arm_data, arm_data_instance
 
 # space_station = SatellitePosition()
 # space_station.satid = 25544
@@ -46,6 +47,7 @@ def get_position(position: SatellitePosition):
 
 def get_commands(request):
     return JsonResponse(VALID_COMMANDS, safe=False)
+
 
 def get_command_history(request):
     history = CommandHistory().history
@@ -208,3 +210,23 @@ def get_arm_position(request):
     position = arm_position_instance()
 
     return JsonResponse(serialize_arm_position(position))
+
+
+def get_arm_data(request):
+    arm_data = arm_data_instance()
+
+    return JsonResponse(serialize_arm_data(arm_data))
+
+
+@csrf_exempt
+def set_arm_data(request):
+    data = json.loads(request.body)
+
+    operation = data.get("operation")
+    angles = data.get("angles")
+
+    print(request.body)
+    print(angles)
+    print(operation)
+
+    return JsonResponse({"updated": True})
