@@ -18,6 +18,8 @@ urlpatterns = [
     path("mqtt-dispatch", views.mqtt_dispatch, name="mqtt_dispatch"),
     path("set-arm-position", views.set_arm_position, name="set_arm_position"),
     path("get-arm-position", views.get_arm_position, name="get_arm_position"),
+    path("get-arm-data", views.get_arm_data, name="get_arm_data"),
+    path("set-arm-data", views.set_arm_data, name="set_arm_data"),
 ]
 
 urlpatterns += [

@@ -41,7 +41,7 @@ def mqtt_start_connection():
     global mqtt_client
 
     if flag_connected == 0:
-        print("CONNECTING TO BROKER")
+        print("*** CONNECTING TO BROKER ***")
         mqtt_client.connect(MQTT_HOST, 1883, 60)
         mqtt_client.loop_forever()
 
