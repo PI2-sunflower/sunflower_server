@@ -8,6 +8,7 @@ from collections import deque
 
 from sunflower_ll.translator import Translator
 
+
 # 10.0.0.222
 MQTT_HOST = "localhost"  # os.environ.get('MQTT_HOST', "localhost")
 # connection_topic = "OLA"
@@ -79,14 +80,28 @@ class CommandHistory:
         return CommandHistory.instance
 
 
+def arm_data_instance():
+    from tracker.data import arm_data_instance  as adi
+    return adi()
+
+
 class AnntenaCommand:
     __slots__ = ("command", "tr", "mqtt_client", "params")
 
     def __init__(self, command, params=None):
+        arm_data = arm_data_instance()
+
         self.command = command
         self.params = params
         self.mqtt_client = mqtt.Client("C1")
         self.tr = Translator()
+
+        self.tr.set_operation_mode(arm_data.operation)
+        self.tr.set_angle_error_offset({
+            "angle_1": arm_data.error_angle_1,
+            "angle_2": arm_data.error_angle_2,
+            "angle_3": arm_data.error_angle_3,
+        })
 
     def execute(self) -> Tuple[bool, str]:
         if self.command == "move_axis":

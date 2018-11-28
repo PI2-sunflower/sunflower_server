@@ -30,6 +30,8 @@ VALID_COMMANDS = [
     "retract",
     "stop_expand_retract",
     "move_axis",
+    "unlock",
+    "go_home"
 ]
 
 
