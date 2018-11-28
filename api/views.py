@@ -222,11 +222,24 @@ def get_arm_data(request):
 def set_arm_data(request):
     data = json.loads(request.body)
 
+    updated = False
     operation = data.get("operation")
     angles = data.get("angles")
+    arm_data = arm_data_instance()
 
-    print(request.body)
-    print(angles)
-    print(operation)
+    try:
+        if operation:
+            arm_data.operation = operation
 
-    return JsonResponse({"updated": True})
+        if angles:
+            arm_data.error_angle_1 = angles.get("angle_1")
+            arm_data.error_angle_2 = angles.get("angle_2")
+            arm_data.error_angle_3 = angles.get("angle_3")
+
+        arm_data.save()
+        updated = True
+    except Exception as e:
+        print(e)
+        updated = False
+
+    return JsonResponse({"updated": updated})
