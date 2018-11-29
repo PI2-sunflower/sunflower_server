@@ -185,11 +185,11 @@ def get_stepped_azimuth_elevation(
 def set_arm_position(request):
     data = json.loads(request.body)
 
-    latitude = data.get("latitude")
-    longitude = data.get("longitude")
-    altitude = data.get("altitude")
-    magnetometer = data.get("magnetometer")
-    engine_speed = data.get("engine_speed")
+    latitude = float(data.get("latitude"))
+    longitude = float(data.get("longitude"))
+    altitude = float(data.get("altitude"))
+    magnetometer = float(data.get("magnetometer"))
+    engine_speed = int(data.get("engine_speed"))
 
     position = arm_position_instance()
 
@@ -235,9 +235,9 @@ def set_arm_data(request):
             arm_data.operation = operation
 
         if angles:
-            arm_data.error_angle_1 = angles.get("angle_1")
-            arm_data.error_angle_2 = angles.get("angle_2")
-            arm_data.error_angle_3 = angles.get("angle_3")
+            arm_data.error_angle_1 = float(angles.get("angle_1"))
+            arm_data.error_angle_2 = float(angles.get("angle_2"))
+            arm_data.error_angle_3 = float(angles.get("angle_3"))
 
         arm_data.save()
         updated = True

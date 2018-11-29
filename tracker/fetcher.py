@@ -8,12 +8,13 @@ from time import sleep, timezone
 from enum import IntEnum
 from datetime import datetime, timedelta
 
-from satellite.satellite import Satellite as SGP4Sat
+from satellite.satellite_wrapper import SatelliteWrapper
 from satellite import tle_getter
 
 from api.mqtt_broker import AnntenaCommand
 
 from tracker.position import arm_position_instance
+from tracker.data import arm_data_instance
 
 API_KEY = os.environ.get("N2YO_API_KEY", "blank")
 BASE_URI = "https://www.n2yo.com/rest/v1"
@@ -148,20 +149,26 @@ class SatelliteTrackerState(Satellite):
             self._track_position()
 
     def _track_position(self):
+        arm_data = arm_data_instance()
+        arm_position_TEMP = arm_position_instance()
+
         def ping_antenna():
             tle = tle_getter.get_and_update_tle_from_disk(self.position.satid)
 
             arm_position = get_position()
-            satellite = SGP4Sat(*tle)
+            satellite = SatelliteWrapper(*tle)
 
             while self._keep_tracking:
                 now = datetime.now()
 
                 (az, el) = satellite.get_observer_azimuth_elevation(
-                    arm_position["latitude"],
-                    arm_position["longitude"],
-                    arm_position["altitude"],
-                    now,
+                    observer_latitude=arm_position["latitude"],
+                    observer_longitude=arm_position["longitude"],
+                    observer_altitude=arm_position["altitude"],
+                    date=now,
+                    north_offset=float(arm_position_TEMP.magnetometer),
+                    azimuth_offset=float(arm_data.error_angle_1),
+                    elevation_offset=float(arm_data.error_angle_2)
                 )
 
                 action = {"angle_1": az, "angle_2": el, "angle_3": 0}
