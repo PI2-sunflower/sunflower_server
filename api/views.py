@@ -11,6 +11,7 @@ from tracker.fetcher import SatelliteProxy, SatellitePosition, TargetParams, Tra
 
 # get_client, start_connection, connection_topic
 from .mqtt_broker import AnntenaCommand, CommandHistory
+from .broker_connection import MQTTConnection
 
 from tracker.position import serialize_arm_position, arm_position_instance
 from tracker.data import serialize_arm_data, arm_data_instance
@@ -31,7 +32,7 @@ VALID_COMMANDS = [
     "stop_expand_retract",
     "move_axis",
     "unlock",
-    "go_home"
+    "go_home",
 ]
 
 
@@ -245,3 +246,9 @@ def set_arm_data(request):
         updated = False
 
     return JsonResponse({"updated": updated})
+
+
+def get_arm_status(request):
+    con = MQTTConnection()
+
+    return JsonResponse({"status": con.status})
