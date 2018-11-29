@@ -1,4 +1,5 @@
 import json
+import math
 
 from datetime import datetime, timedelta, timezone
 
@@ -185,28 +186,29 @@ def get_stepped_azimuth_elevation(
 def set_arm_position(request):
     data = json.loads(request.body)
 
-    latitude = float(data.get("latitude"))
-    longitude = float(data.get("longitude"))
-    altitude = float(data.get("altitude"))
-    magnetometer = float(data.get("magnetometer"))
-    engine_speed = int(data.get("engine_speed"))
+    latitude = data.get("latitude")
+    longitude = data.get("longitude")
+    altitude = data.get("altitude")
 
     position = arm_position_instance()
+    updated = False
 
-    if latitude is not None:
-        position.latitude = latitude
-    if longitude is not None:
-        position.longitude = longitude
-    if altitude is not None:
-        position.altitude = altitude
-    if magnetometer is not None:
-        position.magnetometer = magnetometer
-    if engine_speed is not None:
-        position.engine_speed = engine_speed
+    try:
+        if latitude is not None:
+            position.latitude = float(latitude)
+        if longitude is not None:
+            position.longitude = float(longitude)
+        if altitude is not None:
+            position.altitude = float(altitude)
 
-    position.save()
+        position.save()
+        updated = True
+    except Exception as e:
+        print("position save FAIL")
+        print(e)
+        updated = False
 
-    return JsonResponse({"updates": "done"})
+    return JsonResponse({"updated": updated})
 
 
 def get_arm_position(request):
@@ -225,19 +227,29 @@ def get_arm_data(request):
 def set_arm_data(request):
     data = json.loads(request.body)
 
-    updated = False
+    
     operation = data.get("operation")
     angles = data.get("angles")
+    magnetometer = data.get("magnetometer")
+    engine_speed = data.get("engine_speed")
+
     arm_data = arm_data_instance()
+    updated = False
 
     try:
-        if operation:
+        if operation is not None:
             arm_data.operation = operation
 
-        if angles:
+        if angles is not None:
             arm_data.error_angle_1 = float(angles.get("angle_1"))
             arm_data.error_angle_2 = float(angles.get("angle_2"))
             arm_data.error_angle_3 = float(angles.get("angle_3"))
+
+        if magnetometer is not None:
+            arm_data.magnetometer = float(magnetometer)
+
+        if engine_speed is not None:
+            arm_data.engine_speed = math.floor(abs(int(engine_speed)))
 
         arm_data.save()
         updated = True

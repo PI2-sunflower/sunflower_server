@@ -23,4 +23,6 @@ def serialize_arm_data(arm_data: ArmData):
         "error_angle_1": arm_data.error_angle_1,
         "error_angle_2": arm_data.error_angle_2,
         "error_angle_3": arm_data.error_angle_3,
+        "magnetometer": arm_data.magnetometer,
+        "engine_speed": arm_data.engine_speed,
     }

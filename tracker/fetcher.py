@@ -150,7 +150,6 @@ class SatelliteTrackerState(Satellite):
 
     def _track_position(self):
         arm_data = arm_data_instance()
-        arm_position_TEMP = arm_position_instance()
 
         def ping_antenna():
             tle = tle_getter.get_and_update_tle_from_disk(self.position.satid)
@@ -166,9 +165,9 @@ class SatelliteTrackerState(Satellite):
                     observer_longitude=arm_position["longitude"],
                     observer_altitude=arm_position["altitude"],
                     date=now,
-                    north_offset=float(arm_position_TEMP.magnetometer),
+                    north_offset=float(arm_data.magnetometer),
                     azimuth_offset=float(arm_data.error_angle_1),
-                    elevation_offset=float(arm_data.error_angle_2)
+                    elevation_offset=float(arm_data.error_angle_2),
                 )
 
                 action = {"angle_1": az, "angle_2": el, "angle_3": 0}
