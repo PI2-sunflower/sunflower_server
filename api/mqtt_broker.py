@@ -81,7 +81,7 @@ class AnntenaCommand:
 
         try:
             print("SENT TO BROKER")
-            print("TOPIC: {}\n COMMAND: {}".format(output["topic"], output["command"]))
+            print("TOPIC: {}\nCOMMAND: {}".format(output["topic"], output["command"]))
 
             CommandHistory().add_to_history(output["topic"], output["command"])
 

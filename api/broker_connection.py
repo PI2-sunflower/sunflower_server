@@ -53,10 +53,12 @@ class MQTTConnection:
             process.start()
 
         def publish(self, topic="", command=""):
-            self.mqtt_client.publish(topic, command)
+            info = self.mqtt_client.publish(topic=topic, payload=command, qos=1)
+            info.wait_for_publish()
 
         def _on_connect(self, client, userdata, flags, rc):
             if rc == 0:
+                print("CONNECTED")
                 self.flag_connected = 1
                 self.mqtt_client.subscribe("status")
             else:
@@ -64,6 +66,7 @@ class MQTTConnection:
 
         def _on_disconnect(self, client, userdata, rc):
             self.flag_connected = 0
+            print("DICONNECTED")
 
         def _on_message(self, client, userdata, message):
             received = str(message.payload.decode("utf-8"))
@@ -93,13 +96,13 @@ class MQTTConnection:
             self._status = message
             self._last_status_time = time()
 
-            def kill_after_20_seconds():
-                sleep(20)
+            def kill_after_30_seconds():
+                sleep(30)
                 self._status_process = None
                 self._status_check("dead")
 
             if self._status_process is None:
-                self._status_process = Thread(target=kill_after_20_seconds)
+                self._status_process = Thread(target=kill_after_30_seconds)
                 self._status_process.start()
 
         @property
