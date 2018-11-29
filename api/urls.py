@@ -20,6 +20,7 @@ urlpatterns = [
     path("get-arm-position", views.get_arm_position, name="get_arm_position"),
     path("get-arm-data", views.get_arm_data, name="get_arm_data"),
     path("set-arm-data", views.set_arm_data, name="set_arm_data"),
+    path("get-arm-status", views.get_arm_status, name="get_arm_status"),
 ]
 
 urlpatterns += [
