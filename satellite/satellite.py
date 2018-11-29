@@ -99,6 +99,7 @@ class Satellite:
                             north_offset=0.0):
         '''Returns the satellite directions (azimuth, elevation) for the given
         observer's positions'''
+        assert(date.tzinfo == timezone.utc)
 
         eci_position = self.propagate(date)[0]
         aer_position = pm.eci2aer(eci_position, observer_latitude,

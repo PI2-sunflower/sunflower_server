@@ -7,6 +7,7 @@ from threading import Thread
 from time import sleep, timezone
 from enum import IntEnum
 from datetime import datetime, timedelta
+from datetime import timezone as datetime_timezone
 
 from satellite.satellite_wrapper import SatelliteWrapper
 from satellite import tle_getter
@@ -158,7 +159,7 @@ class SatelliteTrackerState(Satellite):
             satellite = SatelliteWrapper(*tle)
 
             while self._keep_tracking:
-                now = datetime.now()
+                now = datetime.now(tz=datetime_timezone.utc)
 
                 (az, el) = satellite.get_observer_azimuth_elevation(
                     observer_latitude=arm_position["latitude"],
@@ -169,8 +170,19 @@ class SatelliteTrackerState(Satellite):
                     azimuth_offset=float(arm_data.error_angle_1),
                     elevation_offset=float(arm_data.error_angle_2),
                 )
+                print('*' * 5)
+                print('observer_latitude={}'.format(arm_position["latitude"]))
+                print('observer_longitude={}'.format(arm_position["longitude"]))
+                print('observer_altitude={}'.format(arm_position["altitude"]))
+                print('date={}'.format(now))
+                print('north_offset={}'.format(float(arm_data.magnetometer)))
+                print('azimuth_offset={}'.format(float(arm_data.error_angle_1)))
+                print('elevation_offset={}'.format(float(arm_data.error_angle_2)))
+                print('Az = {}'.format(az))
+                print('El = {}'.format(el))
+                print('*' * 5)
 
-                action = {"angle_1": az, "angle_2": el, "angle_3": 0}
+                action = {"angle_1": az, "angle_2": el, "angle_3": 5}
                 command = AnntenaCommand("move_axis", action)
                 command.execute()
 
