@@ -32,8 +32,7 @@ VALID_COMMANDS = [
     "retract",
     "stop_expand_retract",
     "move_axis",
-    "unlock",
-    "go_home",
+    "reset_axis",
 ]
 
 
@@ -227,7 +226,6 @@ def get_arm_data(request):
 def set_arm_data(request):
     data = json.loads(request.body)
 
-    
     operation = data.get("operation")
     angles = data.get("angles")
     magnetometer = data.get("magnetometer")
