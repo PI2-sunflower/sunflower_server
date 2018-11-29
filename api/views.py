@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from satellite.satellite import Satellite
+from satellite.satellite_wrapper import SatelliteWrapper
 from satellite.tle_getter import get_and_update_tle
 from tracker.fetcher import SatelliteProxy, SatellitePosition, TargetParams, Tracker
 
@@ -257,8 +258,51 @@ def set_arm_data(request):
 
     return JsonResponse({"updated": updated})
 
-
 def get_arm_status(request):
     con = MQTTConnection()
 
     return JsonResponse({"status": con.status})
+
+def get_az_el_offsets(request, norad, lat, lon, alt, north_offset, az_offset,
+                      el_offset, year, month, day, hour, minute, second, count,
+                      step):
+
+    start = datetime(
+        year=year,
+        month=month,
+        day=day,
+        hour=hour,
+        minute=minute,
+        second=second,
+        tzinfo=timezone.utc,
+    )
+
+
+    tle = get_and_update_tle(norad)
+
+    satellite = SatelliteWrapper(*tle)
+    az_el, dates = satellite.propagate_az_el_step(lat, lon, alt, start, count,
+            step, north_offset=north_offset, azimuth_offset=az_offset,
+            elevation_offset=el_offset
+    )
+
+    az_el_dates = []
+    for i, azimuth_elevation in enumerate(az_el):
+        azimuth, elevation = azimuth_elevation
+        az_el_date = {"azimuth": azimuth, "elevation": elevation, "date": dates[i]}
+        az_el_dates.append(az_el_date)
+
+    response = {
+        'norad': norad,
+        'observer_latitude': lat,
+        'observer_longitude': lon,
+        'observer_altitude': alt,
+        'north_offset': north_offset,
+        'az_offset': az_offset,
+        'el_offset': el_offset,
+        'start_date': start,
+        'count': count,
+        'step': step,
+        'positions': az_el_dates,
+    }
+    return JsonResponse(response)

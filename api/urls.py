@@ -37,4 +37,10 @@ urlpatterns += [
         views.get_stepped_azimuth_elevation,
         name="track_azimuth_elevation",
     ),
+    path('track_az_el_offsets/norad=<int:norad>/lat=<float:lat>/'
+         'lon=<float:lon>/alt=<float:alt>/north_offset=<float:north_offset>/'
+         'az_offset=<float:az_offset>/el_offset=<float:el_offset>/'
+         'year=<yyyy:year>/month=<xx:month>/day=<xx:day>/hour=<xx:hour>/'
+         'minute=<xx:minute>/second=<xx:second>/count=<int:count>/'
+         'step=<int:step>', views.get_az_el_offsets, name='az_el_offsets'),
 ]

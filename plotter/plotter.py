@@ -6,17 +6,17 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.patches import Circle, PathPatch
 import pymap3d as pm
+from satellite.conversions import azimuth_to_theta, elevation_to_radius
 
 
 from satellite import conversions
 
 
 def plot_az_el(az, el):
-    assert(len(az) > 1)
-
     figure = plt.figure(figsize=(5.2, 4.0))
 
-    visible, invisible = split_visible_points(az[1:-1], el[1:-1])
+    visible, invisible = split_visible_points(az, el)
+
     points_color = {
         'b': az_el_to_theta_radius(visible),
         'r': az_el_to_theta_radius(invisible),
@@ -27,15 +27,13 @@ def plot_az_el(az, el):
     for color, points in points_color.items():
         if not points:
             continue
-
         x, y = list(zip(*points))
         ax.plot(x, y, marker='o', linestyle='', ms=2, color=color, alpha=0.75)
     first_last = az_el_to_theta_radius([(az[i], el[i]) for i in [0, -1]])
-#    for point in first_last:
-#        ax.plot([point[0]], [point[1]], marker='o', linestyle='', ms=6, color='black', alpha=0.9)
     x = [point[0] for point in first_last]
     y = [point[1] for point in first_last]
     ax.plot(x, y, marker='o', linestyle='', ms=3, color='black', alpha=0.75)
+    ax.plot(azimuth_to_theta(0), elevation_to_radius(-15), linestyle='', ms=1, color='grey', alpha=0.1)
 
     ax.set_rticks([30, 60, 90])
 
@@ -65,24 +63,23 @@ def plot_az_el(az, el):
     ax.add_artist(circle)
 
 
-    visible_patch = mpatches.Patch(color='b', label='Visible satellites')
-    invisible_patch = mpatches.Patch(color='r', label='Invisible satellites')
     invisible_area = mpatches.Patch(color='grey', label='Invisible area')
 
-    plt.legend(handles=[visible_patch, invisible_patch, invisible_area], bbox_to_anchor=(0.95, 1.1), loc = 2, borderaxespad = 0.)
-    PATCH_LEGEND_SIZE = 6.1
+    plt.legend(loc='upper center', handles=[invisible_area], bbox_to_anchor=(0.95, 1.1))
+    PATCH_LEGEND_SIZE = 9.5
     plt.rcParams["legend.fontsize"] = PATCH_LEGEND_SIZE
 
 
-    for i in [0, 30, 60, 9, -30]:
+    for i in [0, 30, 60, 90, -30]:
         x = conversions.azimuth_to_theta(45)
         y = conversions.elevation_to_radius(i)
         ax.annotate(str(i), xy=(x, y))
 
-
-
-    ax.annotate('   Start', first_last[0])
-    ax.annotate('   End', first_last[1])
+    if len(az) > 1:
+        ax.annotate('   Start', first_last[0])
+        ax.annotate('   End', first_last[1])
+    else:
+        ax.annotate('   Start/End', first_last[0])
     return figure
 
 
