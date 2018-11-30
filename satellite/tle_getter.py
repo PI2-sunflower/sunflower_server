@@ -3,9 +3,10 @@ from datetime import datetime, timezone
 
 from django.utils import timezone
 
-from api.models import Tle
 from tracker.fetcher import TargetParams, Tracker
 from satellite.tle import TLE
+
+from urllib.request import urlopen
 
 TLE_UPDATE_TIME = 60 * 60 # Unit: seconds
 
@@ -15,6 +16,9 @@ DOWNLOADED_AT_KEY = 'downloaded_at'
 def fetch_new_tle(norad):
     tracker = Tracker(satid=norad)
     tle = tracker.fetch(target=TargetParams.TLE).get('tle', None)
+    if not tle:
+        raise ValueError('Invalid NORAD')
+
     tle = tle.split('\r\n')
     tle_wrapper = TLE(*tle)
     return tle_wrapper
@@ -50,10 +54,10 @@ def get_and_update_tle_from_disk(norad_id):
     except FileNotFoundError:
         tle_cache = {}
 
-    if should_download_tle:
+    is_internet_on = internet_on()
+    if should_download_tle and is_internet_on:
         print('Downloading new TLE for NORAD={}'.format(norad_id))
         tle = fetch_new_tle(norad=norad_id)
-
         tle_value = {
             DOWNLOADED_AT_KEY: now,
             LINE1: tle.tle_line1,
@@ -62,40 +66,26 @@ def get_and_update_tle_from_disk(norad_id):
 
         tle_cache[norad_id] = tle_value
         save_tle_cache_in_disk(tle_cache)
+    elif should_download_tle and not is_internet_on:
+        print('Internet is off: cant dowload new TLE. Trying to get from disk')
 
+    assert(tle_cache, 'Cant fetch TLE: TLE not found on disk and internet '
+                      'is off')
+
+    assert(tle_value, 'Cant fetch TLE: TLE not found on disk and internet '
+                      'is off')
     return tle_value[LINE1], tle_value[LINE2]
 
 
+def internet_on():
+    try:
+        response = urlopen('https://www.n2yo.com/', timeout=10)
+        return True
+    except:
+        return False
+
 def save_or_update_tle_in_db(tle):
     assert(len(tle) == 2)
-
-def get_and_update_tle(norad):
-    should_fetch_tle = False
-    now = timezone.now()
-    try:
-        tle = Tle.objects.get(norad=norad)
-        update_delta = now - tle.updated_at
-        if update_delta.total_seconds() < TLE_UPDATE_TIME:
-            response = tle.line1, tle.line2
-        else:
-            print('Current TLE for NORAD={} is outdated.'.format(norad))
-            should_fetch_tle = True
-    except Tle.DoesNotExist:
-        print('No TLE for NORAD={} on database.'.format(norad))
-        should_fetch_tle = True
-
-    if should_fetch_tle:
-        print('Downloading and updating database TLE for norad=[{}]'.format(norad))
-        tle = fetch_new_tle(norad)
-        new_tle_value = {
-            'line1': tle.tle_line1,
-            'line2': tle.tle_line2,
-            'updated_at': now,
-        }
-        Tle.objects.update_or_create(norad=norad, defaults=new_tle_value)
-        response = tle.tle
-
-    return response
 
 if __name__ == '__main__':
     norad = 25544
