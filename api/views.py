@@ -1,6 +1,8 @@
 import json
 import math
 
+from fixtures.get_all_tles import set_all_tles
+
 from datetime import datetime, timedelta, timezone
 
 from django.http import JsonResponse
@@ -8,7 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 from satellite.satellite import Satellite
 from satellite.satellite_wrapper import SatelliteWrapper
-from satellite.tle_getter import get_and_update_tle
+from satellite.tle_getter import get_tle_cache_from_disk, \
+    get_and_update_tle_from_disk
 from tracker.fetcher import SatelliteProxy, SatellitePosition, TargetParams, Tracker
 
 # get_client, start_connection, connection_topic
@@ -102,7 +105,7 @@ def mqtt_dispatch(request):
 def get_stepped_positions(
     request, norad, year, month, day, hour, minute, second, count, step
 ):
-    tle = get_and_update_tle(norad)
+    tle = get_and_update_tle_from_disk(norad)
     start = datetime(
         year=year,
         month=month,
@@ -147,7 +150,7 @@ def get_stepped_azimuth_elevation(
     step,
 ):
 
-    tle = get_and_update_tle(norad)
+    tle = get_and_update_tle_from_disk(norad)
     start = datetime(
         year=year,
         month=month,
@@ -278,7 +281,7 @@ def get_az_el_offsets(request, norad, lat, lon, alt, north_offset, az_offset,
     )
 
 
-    tle = get_and_update_tle(norad)
+    tle = get_and_update_tle_from_disk(norad)
 
     satellite = SatelliteWrapper(*tle)
     az_el, dates = satellite.propagate_az_el_step(lat, lon, alt, start, count,
@@ -306,3 +309,11 @@ def get_az_el_offsets(request, norad, lat, lon, alt, north_offset, az_offset,
         'positions': az_el_dates,
     }
     return JsonResponse(response)
+
+def set_tle_cache(request):
+    set_all_tles()
+    return JsonResponse({'Success': 'downloaded all'})
+
+def get_tle_cache(request):
+    cache = get_tle_cache_from_disk()
+    return JsonResponse(cache)
