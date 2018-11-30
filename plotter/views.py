@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from django.http import JsonResponse
 from satellite.satellite_wrapper import SatelliteWrapper
-from satellite.tle_getter import get_and_update_tle_from_disk
+from satellite.tle_getter import get_and_update_tle
 
 from django.http import HttpResponse
 
@@ -58,11 +58,7 @@ def plot_az_el_offsets(request, norad, lat, lon, alt, north_offset, az_offset,
     )
 
 
-    tle = None
-    try:
-        tle = get_and_update_tle_from_disk(norad)
-    except ValueError:
-        return JsonResponse({'Error': 'invalid NORAD'})
+    tle = get_and_update_tle(norad)
 
     satellite = SatelliteWrapper(*tle)
     az_el, dates = satellite.propagate_az_el_step(lat, lon, alt, start, count,

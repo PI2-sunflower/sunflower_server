@@ -44,8 +44,3 @@ urlpatterns += [
          'minute=<xx:minute>/second=<xx:second>/count=<int:count>/'
          'step=<int:step>', views.get_az_el_offsets, name='az_el_offsets'),
 ]
-
-urlpatterns += [
-    path('set_tle_cache', views.set_tle_cache, name='set_tle_cache'),
-    path('get_tle_cache', views.get_tle_cache, name='get_tle_cache'),
-]
