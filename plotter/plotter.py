@@ -75,11 +75,7 @@ def plot_az_el(az, el):
         y = conversions.elevation_to_radius(i)
         ax.annotate(str(i), xy=(x, y))
 
-    if len(az) > 1:
-        ax.annotate('   Start', first_last[0])
-        ax.annotate('   End', first_last[1])
-    else:
-        ax.annotate('   Start/End', first_last[0])
+    ax.annotate('   Start', first_last[0])
     return figure
 
 
