@@ -20,6 +20,7 @@ from .broker_connection import MQTTConnection
 
 from tracker.position import serialize_arm_position, arm_position_instance
 from tracker.data import serialize_arm_data, arm_data_instance
+from tracker.timer import TrackTimer
 
 # space_station = SatellitePosition()
 # space_station.satid = 25544
@@ -317,3 +318,42 @@ def set_tle_cache(request):
 def get_tle_cache(request):
     cache = get_tle_cache_from_disk()
     return JsonResponse(cache)
+
+
+
+def timer_is_active(request):
+    timer = TrackTimer()
+
+    return JsonResponse({"is_active": timer.is_active})
+
+
+def track_timer(request):
+    timer = TrackTimer()
+
+    data = json.loads(request.body)
+
+    angle_1 = data.get("angle_1")
+    step = data.get("step")
+    time = data.get("time")
+    
+    is_active = False
+
+    try:
+        angle_1 = float(angle_1)
+        step = float(step)
+        time = int(time)
+
+        if time <= 0:
+            raise "Invalid time"
+
+        if step <= 0.1:
+            raise "Invalid step"
+
+        timer.set_data(angle_1, step, time)
+
+        updated = True
+    except Exception as e:
+        print(e)
+        is_active = False
+
+    return JsonResponse({"is_active": is_active})

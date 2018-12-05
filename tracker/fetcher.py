@@ -240,6 +240,29 @@ class SatelliteTrackerState(Satellite):
         ping_process.start()
 
 
+
+class SatelliteTimerState(Satellite):
+    def __init__(self):
+        self.timer = TrackTimer()
+
+    def __del__(self):
+        self.timer.stop()
+
+    def start_timer(self):
+        self.timer.start()
+    
+    def stop_timer(self):
+        self.timer.stop()
+
+    def set_position(self, position: SatellitePosition):
+        pass
+
+    def get_position(self) -> SatellitePosition:
+        return None
+
+
+
+
 class SatelliteProxy(Satellite):
     def __init__(self):
         self.satellite = SatelliteNotSelectedState()
@@ -268,5 +291,8 @@ class SatelliteProxy(Satellite):
             else:
                 self.satellite = SatelliteTrackerState(self.position)
                 self.satellite.start_tracking()
+        elif next_state == "timer":
+            self.satellite = SatelliteTimerState()
+            pass
         else:  # anything else goto not selected state
             self.satellite = SatelliteNotSelectedState()
