@@ -16,6 +16,7 @@ from api.mqtt_broker import AnntenaCommand
 
 from tracker.position import arm_position_instance
 from tracker.data import arm_data_instance
+from tracker.timer import TrackTimer
 
 API_KEY = os.environ.get("N2YO_API_KEY", "blank")
 BASE_URI = "https://www.n2yo.com/rest/v1"
@@ -170,17 +171,17 @@ class SatelliteTrackerState(Satellite):
                     azimuth_offset=float(arm_data.error_angle_1),
                     elevation_offset=float(arm_data.error_angle_2),
                 )
-                print('*' * 5)
-                print('observer_latitude={}'.format(arm_position["latitude"]))
-                print('observer_longitude={}'.format(arm_position["longitude"]))
-                print('observer_altitude={}'.format(arm_position["altitude"]))
-                print('date={}'.format(now))
-                print('north_offset={}'.format(float(arm_data.magnetometer)))
-                print('azimuth_offset={}'.format(float(arm_data.error_angle_1)))
-                print('elevation_offset={}'.format(float(arm_data.error_angle_2)))
-                print('Az = {}'.format(az))
-                print('El = {}'.format(el))
-                print('*' * 5)
+                print("*" * 5)
+                print("observer_latitude={}".format(arm_position["latitude"]))
+                print("observer_longitude={}".format(arm_position["longitude"]))
+                print("observer_altitude={}".format(arm_position["altitude"]))
+                print("date={}".format(now))
+                print("north_offset={}".format(float(arm_data.magnetometer)))
+                print("azimuth_offset={}".format(float(arm_data.error_angle_1)))
+                print("elevation_offset={}".format(float(arm_data.error_angle_2)))
+                print("Az = {}".format(az))
+                print("El = {}".format(el))
+                print("*" * 5)
 
                 action = {"angle_1": az, "angle_2": el, "angle_3": 5}
                 command = AnntenaCommand("move_axis", action)
@@ -240,17 +241,17 @@ class SatelliteTrackerState(Satellite):
         ping_process.start()
 
 
-
 class SatelliteTimerState(Satellite):
     def __init__(self):
         self.timer = TrackTimer()
+        self.timer.start()
 
     def __del__(self):
         self.timer.stop()
 
     def start_timer(self):
         self.timer.start()
-    
+
     def stop_timer(self):
         self.timer.stop()
 
@@ -259,8 +260,6 @@ class SatelliteTimerState(Satellite):
 
     def get_position(self) -> SatellitePosition:
         return None
-
-
 
 
 class SatelliteProxy(Satellite):
@@ -293,6 +292,5 @@ class SatelliteProxy(Satellite):
                 self.satellite.start_tracking()
         elif next_state == "timer":
             self.satellite = SatelliteTimerState()
-            pass
         else:  # anything else goto not selected state
             self.satellite = SatelliteNotSelectedState()

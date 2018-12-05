@@ -327,31 +327,46 @@ def timer_is_active(request):
     return JsonResponse({"is_active": timer.is_active})
 
 
-def track_timer(request):
+def stop_timer(req):
+    global proxy
+
+    proxy.switch_state("not_selected")
+
+    return JsonResponse({"is_active": False})
+
+
+@csrf_exempt
+def start_timer(request):
+    global proxy
+
     timer = TrackTimer()
 
     data = json.loads(request.body)
 
-    angle_1 = data.get("angle_1")
-    step = data.get("step")
+    start_angle = data.get("start_angle")
+    end_angle = data.get("end_angle")
     time = data.get("time")
-    
+
     is_active = False
 
     try:
-        angle_1 = float(angle_1)
-        step = float(step)
+        start_angle = float(start_angle)
+        end_angle = float(end_angle)
         time = int(time)
 
         if time <= 0:
             raise "Invalid time"
 
-        if step <= 0.1:
-            raise "Invalid step"
+        if end_angle <= start_angle:
+            raise "Invalid angle combination"
 
-        timer.set_data(angle_1, step, time)
+        timer.set_data(start_angle, end_angle, time)
 
-        updated = True
+        proxy.switch_state("not_selected")
+        proxy.switch_state("timer")
+
+
+        is_active = True
     except Exception as e:
         print(e)
         is_active = False

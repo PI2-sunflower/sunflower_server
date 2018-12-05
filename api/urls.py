@@ -21,6 +21,9 @@ urlpatterns = [
     path("get-arm-data", views.get_arm_data, name="get_arm_data"),
     path("set-arm-data", views.set_arm_data, name="set_arm_data"),
     path("get-arm-status", views.get_arm_status, name="get_arm_status"),
+    path("stop-timer", views.stop_timer, name="stop_timer"),
+    path("start-timer", views.start_timer, name="start_timer"),
+    path("timer-is-active", views.timer_is_active, name="timer_is_active"),
 ]
 
 urlpatterns += [
@@ -37,15 +40,19 @@ urlpatterns += [
         views.get_stepped_azimuth_elevation,
         name="track_azimuth_elevation",
     ),
-    path('track_az_el_offsets/norad=<int:norad>/lat=<float:lat>/'
-         'lon=<float:lon>/alt=<float:alt>/north_offset=<float:north_offset>/'
-         'az_offset=<float:az_offset>/el_offset=<float:el_offset>/'
-         'year=<yyyy:year>/month=<xx:month>/day=<xx:day>/hour=<xx:hour>/'
-         'minute=<xx:minute>/second=<xx:second>/count=<int:count>/'
-         'step=<int:step>', views.get_az_el_offsets, name='az_el_offsets'),
+    path(
+        "track_az_el_offsets/norad=<int:norad>/lat=<float:lat>/"
+        "lon=<float:lon>/alt=<float:alt>/north_offset=<float:north_offset>/"
+        "az_offset=<float:az_offset>/el_offset=<float:el_offset>/"
+        "year=<yyyy:year>/month=<xx:month>/day=<xx:day>/hour=<xx:hour>/"
+        "minute=<xx:minute>/second=<xx:second>/count=<int:count>/"
+        "step=<int:step>",
+        views.get_az_el_offsets,
+        name="az_el_offsets",
+    ),
 ]
 
 urlpatterns += [
-    path('set_tle_cache', views.set_tle_cache, name='set_tle_cache'),
-    path('get_tle_cache', views.get_tle_cache, name='get_tle_cache'),
+    path("set_tle_cache", views.set_tle_cache, name="set_tle_cache"),
+    path("get_tle_cache", views.get_tle_cache, name="get_tle_cache"),
 ]
