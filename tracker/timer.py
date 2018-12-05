@@ -31,7 +31,7 @@ class TrackTimer:
                 current_time = 0
                 current_angle = self.start_angle
 
-                angles = {"angle_1": 0, "angle_2": 5, "angle_3": 0}
+                angles = {"angle_1": 0, "angle_2": 8, "angle_3": 0}
 
                 while self._is_active:
                     print("TIMER at: {} seconds".format(current_time))
