@@ -12,7 +12,7 @@ from satellite.conversions import azimuth_to_theta, elevation_to_radius
 from satellite import conversions
 
 
-def plot_az_el(az, el):
+def plot_az_el(az, el, az_el_now=None):
     figure = plt.figure(figsize=(5.2, 4.0))
 
     visible, invisible = split_visible_points(az, el)
@@ -33,7 +33,17 @@ def plot_az_el(az, el):
     x = [point[0] for point in first_last]
     y = [point[1] for point in first_last]
     ax.plot(x, y, marker='o', linestyle='', ms=3, color='black', alpha=0.75)
+
     ax.plot(azimuth_to_theta(0), elevation_to_radius(-15), linestyle='', ms=1, color='grey', alpha=0.1)
+    if az_el_now is not None:
+        az_now, el_now, now = az_el_now
+
+        az_now = azimuth_to_theta(az_now)
+        el_now = elevation_to_radius(el_now)
+
+        ax.plot(az_now, el_now, marker='<', linestyle='', ms=8, color='green', alpha=0.75)
+        print('az_el_now = {}'.format((az_now, el_now, now)))
+        ax.annotate('Now', (az_now, el_now), fontsize=8)
 
     ax.set_rticks([30, 60, 90])
 
@@ -65,7 +75,7 @@ def plot_az_el(az, el):
 
     invisible_area = mpatches.Patch(color='grey', label='Invisible area')
 
-    plt.legend(loc='upper center', handles=[invisible_area], bbox_to_anchor=(0.95, 1.1))
+    plt.legend(loc='upper center', handles=[invisible_area], bbox_to_anchor=(1.09, 1.07))
     PATCH_LEGEND_SIZE = 9.5
     plt.rcParams["legend.fontsize"] = PATCH_LEGEND_SIZE
 
@@ -75,10 +85,9 @@ def plot_az_el(az, el):
         y = conversions.elevation_to_radius(i)
         ax.annotate(str(i), xy=(x, y))
 
-    ax.annotate('   Start', first_last[0])
+    if az_el_now is None:
+        ax.annotate('   Start', first_last[0])
     return figure
-
-
 
 def annotate_satellite(ax, az, el, dates):
     for i in range(len(az)):
