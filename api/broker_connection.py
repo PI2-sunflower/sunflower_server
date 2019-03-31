@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt
 from time import sleep, time
 from threading import Thread
 
-MQTT_HOST = "localhost"  # os.environ.get('MQTT_HOST', "localhost")
+MQTT_HOST = os.environ.get('MQTT_HOST', "localhost")
 print("=" * 80)
 print(f"HOST: {MQTT_HOST}")
 print("=" * 80)

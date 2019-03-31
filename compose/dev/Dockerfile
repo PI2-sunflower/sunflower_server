@@ -20,8 +20,11 @@ WORKDIR /sunserver
 
 COPY requirements /sunserver/requirements
 RUN pip3 install -r requirements/dev.txt
-RUN pip3 install --extra-index-url https://test.pypi.org/simple/ sunflower-low-level --no-cache-dir 
+RUN pip3 install gunicorn
+RUN pip3 install --extra-index-url https://test.pypi.org/simple/ sunflower-low-level --no-cache-dir
 ADD . /sunserver/
 RUN chmod +x compose/entrypoint.sh
 
 ENV PYTHONUNBUFFERED 1
+
+RUN python3 manage.py migrate
